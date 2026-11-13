@@ -29,7 +29,7 @@ def _api(url: str) -> Any:
 
 def fetch_profile(user: str | None = None) -> dict[str, Any]:
     """Live profile. Falls back to the committed cache, then to an empty shell."""
-    user = user or os.environ.get("GITHUB_USER") or DEFAULT_USER
+    user = user or os.environ.get("PROFILE_USER") or os.environ.get("GITHUB_USER") or DEFAULT_USER
     try:
         repos = _api(f"https://api.github.com/users/{user}/repos?per_page=100&sort=pushed")
         mine = [

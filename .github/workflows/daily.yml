@@ -41,7 +41,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_USER: ${{ vars.GITHUB_USER || 'krithikmohan30' }}
+          GITHUB_USER: ${{ vars.PROFILE_USER || 'krithikmohan30' }}
         run: python -m radar.main ${{ inputs.dry_run && '--dry-run' || '' }}
 
       - name: Commit the log
