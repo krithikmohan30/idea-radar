@@ -131,6 +131,27 @@ def test_gemini_inlines_system_prompt_when_rejected(monkeypatch):
     assert seen == [True, False]
 
 
+def test_gemini_moves_to_next_model_when_overloaded(monkeypatch):
+    llm._MODEL_CACHE.clear()
+    models = {
+        "models": [
+            {"name": "models/gemini-3.8-flash", "supportedGenerationMethods": ["generateContent"]},
+            {"name": "models/gemini-3.5-flash", "supportedGenerationMethods": ["generateContent"]},
+        ]
+    }
+    monkeypatch.setattr(llm.requests, "get", lambda *a, **k: FakeResp(200, models))
+    monkeypatch.setattr(llm.time, "sleep", lambda _s: None)
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+
+    def fake_post(url, **kwargs):
+        if "gemini-3.8-flash" in url:
+            return FakeResp(503, {"error": {"message": "high demand"}})
+        return FakeResp(200, gemini_body())
+
+    monkeypatch.setattr(llm.requests, "post", fake_post)
+    assert llm.gemini("prompt", "qqq11111")["title"] == "Spec Drift"
+
+
 def test_gemini_recovers_from_retired_model(monkeypatch):
     llm._MODEL_CACHE.clear()
     models = {

@@ -98,7 +98,7 @@ def _post(
             if resp.status_code not in {429, 500, 502, 503, 504}:
                 raise last
         if attempt < 2:
-            time.sleep(2 + attempt * 4)
+            time.sleep(5 if attempt == 0 else 20)
     raise LLMError(str(last))
 
 
@@ -121,14 +121,16 @@ def _rank_model(name: str) -> tuple[int, int, float] | None:
     return (family, stable, float(match.group(1)))
 
 
-def resolve_model(api_key: str, refresh: bool = False) -> str:
-    """Ask the API which models this key may use.
+def resolve_models(api_key: str, refresh: bool = False) -> list[str]:
+    """Ask the API which models this key may use, best first.
 
     Hard-coding a model name rots: Google retires names and returns a 404 telling
     you the replacement. Discovery means the bot keeps working without a code change.
+    The list matters too: a free-tier model that is overloaded (503) can be skipped
+    for the next one instead of losing the day.
     """
     if not refresh and _MODEL_CACHE.get(api_key[:8]):
-        return _MODEL_CACHE[api_key[:8]]
+        return list(_MODEL_CACHE[api_key[:8]])
 
     resp = requests.get(
         f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}&pageSize=1000",
@@ -140,13 +142,18 @@ def resolve_model(api_key: str, refresh: bool = False) -> str:
         for m in resp.json().get("models", [])
         if "generateContent" in (m.get("supportedGenerationMethods") or [])
     ]
-    ranked = [(rank, name) for name in names if (rank := _rank_model(name))]
+    ranked = sorted(((_rank_model(n), n) for n in names if _rank_model(n)), reverse=True)
     if not ranked:
         raise LLMError(f"no usable Gemini model in {names[:5]}")
-    best = max(ranked)[1]
-    _MODEL_CACHE[api_key[:8]] = best
-    print(f"[llm] gemini model: {best} (of {len(names)} available)")
-    return best
+
+    ordered = [name for _, name in ranked]
+    _MODEL_CACHE[api_key[:8]] = ordered
+    print(f"[llm] gemini candidates: {', '.join(ordered[:3])} (of {len(names)} available)")
+    return ordered
+
+
+def resolve_model(api_key: str, refresh: bool = False) -> str:
+    return resolve_models(api_key, refresh)[0]
 
 
 def _gemini_call(
@@ -174,7 +181,23 @@ def _gemini_call(
 
 
 def gemini(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:
-    model = model or os.environ.get("GEMINI_MODEL", "").strip() or resolve_model(api_key)
+    explicit = model or os.environ.get("GEMINI_MODEL", "").strip()
+    candidates = [explicit] if explicit else resolve_models(api_key)[:3]
+    last: Exception | None = None
+
+    for index, candidate in enumerate(candidates):
+        try:
+            return _gemini_model(prompt, api_key, candidate)
+        except LLMError as exc:
+            last = exc
+            print(f"[llm] {candidate} failed: {str(exc)[:160]}")
+            if index + 1 < len(candidates):
+                print(f"[llm] trying {candidates[index + 1]}")
+    raise LLMError(str(last))
+
+
+def _gemini_model(prompt: str, api_key: str, model: str) -> dict[str, Any]:
+    """One model, with the per-model fallbacks: system prompt, JSON mode, retirement."""
     inline_system = False
     json_mode = True
 
