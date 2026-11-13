@@ -152,3 +152,11 @@ def test_record_replaces_same_day():
     records = state.record(records, PAYLOAD, "2026-11-13")
     assert len(records) == 1
     assert records[0]["title"] == PAYLOAD["title"]
+
+
+def test_has_good_idea_only_counts_llm_entries():
+    template = [{"date": "2026-11-13", "engine": "template"}]
+    real = [{"date": "2026-11-13", "engine": "llm"}]
+    assert not state.has_good_idea(template, "2026-11-13")
+    assert state.has_good_idea(real, "2026-11-13")
+    assert not state.has_good_idea(real, "2026-11-14")

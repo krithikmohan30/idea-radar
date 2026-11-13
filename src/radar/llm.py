@@ -27,7 +27,7 @@ Hard rules:
 - Reject: todo apps, clones, tutorial rehashes, thin GPT wrappers, anything needing paid infra or a team.
 - Prefer: a sharp wedge of a current trend, a developer tool, a thing that is funny or useful enough to share.
 - Cite 2-4 of the provided signals as evidence, using their exact URLs.
-Return JSON only. No prose, no markdown fences."""
+Return JSON only. No prose, no markdown fences. No emoji anywhere in the output."""
 
 SCHEMA_HINT = """{
   "title": "short product name + 4-8 word descriptor",

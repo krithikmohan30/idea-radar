@@ -105,3 +105,12 @@ def append_markdown(idea: dict[str, Any], markdown: str, day: str) -> Path:
 
 def today() -> str:
     return date.today().isoformat()
+
+
+def has_good_idea(records: list[dict[str, Any]], day: str) -> bool:
+    """True when today already produced a real (LLM) idea, so a retry can stand down.
+
+    A template fallback does not count: it is worth retrying later in the day when
+    the free-tier model is less congested.
+    """
+    return any(r.get("date") == day and r.get("engine") == "llm" for r in records)

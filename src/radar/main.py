@@ -23,6 +23,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--sources", default="", help="comma list, e.g. hn,github,arxiv")
     p.add_argument("--date", default="", help="override the date label (YYYY-MM-DD)")
     p.add_argument("--min-fit", type=int, default=6, help="regenerate if profile fit is below this")
+    p.add_argument(
+        "--if-missing",
+        action="store_true",
+        help="exit quietly if today already produced a real idea (for retry schedules)",
+    )
     return p.parse_args(argv)
 
 
@@ -68,6 +73,11 @@ def main(argv: list[str] | None = None) -> int:
     day = args.date or state.today()
     only = [s.strip() for s in args.sources.split(",") if s.strip()] or None
 
+    records = state.load()
+    if args.if_missing and state.has_good_idea(records, day):
+        print(f"[skip] {day} already has an LLM idea; nothing to do")
+        return 0
+
     signals, errors = collect(only)
     if not signals:
         print(f"[fatal] no signals collected: {errors}")
@@ -79,7 +89,6 @@ def main(argv: list[str] | None = None) -> int:
 
     trimmed = top_signals(signals, 40)
     profile = profile_mod.fetch_profile()
-    records = state.load()
 
     try:
         idea = pick_idea(
