@@ -42,17 +42,23 @@ class FakeResp:
     def json(self) -> dict:
         return self._payload
 
+    def raise_for_status(self) -> None:
+        if not self.ok:
+            raise requests.HTTPError(self.text, response=None)
+
 
 def gemini_body(text: str = json.dumps(IDEA)) -> dict:
     return {"candidates": [{"content": {"parts": [{"text": text}]}}]}
 
 
 def test_gemini_parses_response(monkeypatch):
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
     monkeypatch.setattr(llm.requests, "post", lambda *a, **k: FakeResp(200, gemini_body()))
     assert llm.gemini("prompt", "key")["title"] == "Spec Drift"
 
 
 def test_gemini_retries_then_succeeds(monkeypatch):
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
     calls = {"n": 0}
 
     def fake_post(*args, **kwargs):
@@ -67,7 +73,46 @@ def test_gemini_retries_then_succeeds(monkeypatch):
     assert calls["n"] == 2
 
 
+def test_resolve_model_prefers_newest_stable_flash(monkeypatch):
+    llm._MODEL_CACHE.clear()
+    models = {
+        "models": [
+            {"name": "models/gemini-1.5-flash", "supportedGenerationMethods": ["generateContent"]},
+            {"name": "models/gemini-5.0-pro", "supportedGenerationMethods": ["generateContent"]},
+            {"name": "models/gemini-3.8-flash", "supportedGenerationMethods": ["generateContent"]},
+            {
+                "name": "models/gemini-4.0-flash-preview",
+                "supportedGenerationMethods": ["generateContent"],
+            },
+            {"name": "models/text-embedding-004", "supportedGenerationMethods": ["embedContent"]},
+        ]
+    }
+    monkeypatch.setattr(llm.requests, "get", lambda *a, **k: FakeResp(200, models))
+    assert llm.resolve_model("abc12345") == "gemini-3.8-flash"
+
+
+def test_gemini_recovers_from_retired_model(monkeypatch):
+    llm._MODEL_CACHE.clear()
+    models = {
+        "models": [
+            {"name": "models/gemini-3.8-flash", "supportedGenerationMethods": ["generateContent"]}
+        ]
+    }
+    monkeypatch.setattr(llm.requests, "get", lambda *a, **k: FakeResp(200, models))
+    monkeypatch.setattr(llm.time, "sleep", lambda _s: None)
+
+    def fake_post(url, *args, **kwargs):
+        if "gemini-2.5-flash" in url:
+            return FakeResp(404, {"error": {"message": "no longer available to new users"}})
+        return FakeResp(200, gemini_body())
+
+    monkeypatch.setattr(llm.requests, "post", fake_post)
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-2.5-flash")
+    assert llm.gemini("prompt", "abc12345")["title"] == "Spec Drift"
+
+
 def test_gemini_rejects_bad_key_without_retry(monkeypatch):
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
     calls = {"n": 0}
 
     def fake_post(*args, **kwargs):
@@ -88,6 +133,7 @@ def test_groq_parses_response(monkeypatch):
 
 def test_generate_falls_back_without_keys(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     monkeypatch.setenv("LLM_PROVIDER", "auto")
     idea = llm.generate("profile", SIGNALS, [], None)
@@ -97,6 +143,7 @@ def test_generate_falls_back_without_keys(monkeypatch):
 
 def test_generate_uses_gemini_when_key_present(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "k")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     monkeypatch.setattr(llm.requests, "post", lambda *a, **k: FakeResp(200, gemini_body()))
     idea = llm.generate("profile", SIGNALS, ["old idea"], None)
@@ -106,6 +153,7 @@ def test_generate_uses_gemini_when_key_present(monkeypatch):
 
 def test_generate_falls_back_when_provider_errors(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "k")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
     monkeypatch.setattr(llm.time, "sleep", lambda _s: None)
 
     def boom(*args, **kwargs):

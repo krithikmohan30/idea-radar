@@ -74,6 +74,9 @@ class LLMError(RuntimeError):
     pass
 
 
+_MODEL_CACHE: dict[str, str] = {}
+
+
 def _post(
     url: str, payload: dict[str, Any], headers: dict[str, str] | None = None
 ) -> dict[str, Any]:
@@ -99,8 +102,50 @@ def _post(
     raise LLMError(str(last))
 
 
-def gemini(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:
-    model = model or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+def _rank_model(name: str) -> tuple[int, int, float] | None:
+    """Score a Gemini model name; higher is better. None = not usable for us.
+
+    Family outranks version on purpose: pro models have no free tier, so a newer
+    pro name would 429 in a free-tier key. Stable flash first, preview flash next,
+    pro only as a last resort.
+    """
+    match = re.match(r"gemini-(\d+(?:\.\d+)?)-(flash-lite|flash|pro)", name)
+    if not match:
+        return None
+    family = {"flash": 3, "pro": 2, "flash-lite": 1}[match.group(2)]
+    stable = 0 if ("preview" in name or "exp" in name) else 1
+    return (family, stable, float(match.group(1)))
+
+
+def resolve_model(api_key: str, refresh: bool = False) -> str:
+    """Ask the API which models this key may use.
+
+    Hard-coding a model name rots: Google retires names and returns a 404 telling
+    you the replacement. Discovery means the bot keeps working without a code change.
+    """
+    if not refresh and _MODEL_CACHE.get(api_key[:8]):
+        return _MODEL_CACHE[api_key[:8]]
+
+    resp = requests.get(
+        f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}&pageSize=1000",
+        timeout=30,
+    )
+    resp.raise_for_status()
+    names = [
+        m["name"].split("/", 1)[-1]
+        for m in resp.json().get("models", [])
+        if "generateContent" in (m.get("supportedGenerationMethods") or [])
+    ]
+    ranked = [(rank, name) for name in names if (rank := _rank_model(name))]
+    if not ranked:
+        raise LLMError(f"no usable Gemini model in {names[:5]}")
+    best = max(ranked)[1]
+    _MODEL_CACHE[api_key[:8]] = best
+    print(f"[llm] gemini model: {best} (of {len(names)} available)")
+    return best
+
+
+def _gemini_call(prompt: str, api_key: str, model: str) -> dict[str, Any]:
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent?key={api_key}"
@@ -119,6 +164,20 @@ def gemini(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any
         return load_json(data["candidates"][0]["content"]["parts"][0]["text"])
     except (KeyError, IndexError) as exc:
         raise LLMError(f"unexpected Gemini payload: {json.dumps(data)[:300]}") from exc
+
+
+def gemini(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:
+    model = model or os.environ.get("GEMINI_MODEL", "").strip() or resolve_model(api_key)
+    try:
+        return _gemini_call(prompt, api_key, model)
+    except LLMError as exc:
+        if "404" not in str(exc) and "no longer available" not in str(exc):
+            raise
+        replacement = resolve_model(api_key, refresh=True)
+        if replacement == model:
+            raise
+        print(f"[llm] {model} retired, retrying with {replacement}")
+        return _gemini_call(prompt, api_key, replacement)
 
 
 def groq(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:
