@@ -1,0 +1,75 @@
+{
+  "user": "krithikmohan30",
+  "repos": [
+    {
+      "name": "Ai-assistant",
+      "description": "Ai assistant",
+      "language": "Python",
+      "stars": 0,
+      "topics": []
+    },
+    {
+      "name": "reaper",
+      "description": "REAPER: Dependency Bloat and Dead-Code CLI for JS/TS",
+      "language": "TypeScript",
+      "stars": 0,
+      "topics": []
+    },
+    {
+      "name": "song-player",
+      "description": "A lightweight web-based audio player built for seamless music playback. Features custom play/pause controls, progress tracking, volume adjustment, and playlist management wrapped in a clean, modern UI.",
+      "language": "",
+      "stars": 0,
+      "topics": []
+    },
+    {
+      "name": "iiot-management",
+      "description": "",
+      "language": "JavaScript",
+      "stars": 0,
+      "topics": []
+    },
+    {
+      "name": "smartbus-ai",
+      "description": "",
+      "language": "Python",
+      "stars": 0,
+      "topics": []
+    },
+    {
+      "name": "krithikmohan30",
+      "description": "Profile README for @krithikmohan30",
+      "language": "",
+      "stars": 0,
+      "topics": []
+    },
+    {
+      "name": "claude-builder-workshop",
+      "description": "60-min workshop kit to teach anyone to build with the Claude API: streaming, personas, tool use",
+      "language": "Python",
+      "stars": 0,
+      "topics": [
+        "anthropic",
+        "claude-api",
+        "hackathon",
+        "python",
+        "streamlit",
+        "workshop"
+      ]
+    },
+    {
+      "name": "PatchPilot-AlphaTech",
+      "description": "PatchPilot: autonomous bug-fix agent (iQOO Hackathon 2026, Team Alpha Tech). Issue in, tested PR out.",
+      "language": "Python",
+      "stars": 0,
+      "topics": [
+        "ai-agents",
+        "bug-fix",
+        "github-api",
+        "hackathon",
+        "python"
+      ]
+    }
+  ],
+  "readme": "# Hi, I'm Krithik\n\nUndergrad developer building practical AI apps with the Claude API. I like shipping small, working demos fast — then teaching others to do the same through workshops and hackathons.\n\n**Focus right now:** Claude API apps (RAG, tool use, streaming) + running 60-minute builder workshops on campus.\n\n## What I do\n\n- **Build with Claude:** chat apps, RAG assistants, tool-using agents with the Anthropic SDK\n- **Hackathons:** co-built PatchPilot, an autonomous bug-fix agent (issue in, tested PR out)\n- **Teach:** maintain a ready-to-run Claude Builder Workshop kit any club can run in 60 minutes\n\n## Tech stack\n\n![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)\n![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)\n![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=nextdotjs&logoColor=white)\n![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)\n![Anthropic](https://img.shields.io/badge/Claude_API-D97757?style=flat&logo=anthropic&logoColor=white)\n![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white)\n![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white)\n![Git](https://img.shields.io/badge/Git-F05032?style=flat&logo=git&logoColor=white)\n\n## Featured projects\n\n### 1. Claude Builder Workshop\nReady-to-run 60-minute workshop kit: streaming chat starter, personas, token literacy, and a tool-using mini-agent. Facilitator run-of-show + attendee exercises included.\n\n- Stack: Python, Streamlit, Anthropic SDK\n- Repo: [krithikmohan30/claude-builder-workshop](https://github.com/krithikmohan30/claude-builder-workshop)\n\n### 2. PatchPilot (AlphaTech)\nAutonomous bug-fix agent built for iQOO Hackathon 2026. Takes a GitHub issue, reproduces it, patches code, runs tests, and opens a PR.\n\n- Stack: Python, LLM agents, GitHub API\n- Repo: [krithikmohan30/PatchPilot-AlphaTech](https://github.com/krithikmohan30/PatchPilot-AlphaTech)\n\n### 3. Portfolio Site\nFull-stack portfolio on Next.js 15 + Supabase (Postgres + Auth), deployed on Vercel free tier. Admin panel to add projects without touching code.\n\n- Stack: Next.js, TypeScript, Tailwind, Supabase\n- Status: deploy live link here once shipped\n\n## Currently\n\n- [ ] Running Claude intro workshops using the kit above — PRs from real rooms welcome\n- [ ] Applying to Claude Campus Ambassador (Builder Club track, 2026-27)\n- [ ] Open to hackathons, open source, and internships\n\n## GitHub stats\n\n![Krithik's GitHub stats](https://github-readme-stats.vercel.app/api?username=krithikmohan30&show_icons=true&hide_border=true&count_private=true)\n![Top languages](https://github-readme-stats.vercel.app/api/top-langs/?username=krithikmohan30&layout=compact&hide_border=true)\n\n## Connect\n\n- GitHub: [@krithikmohan30](https://github.com/krithikmohan30)\n- LinkedIn: add-your-link-here\n- Email: add-your-email-here\n\nProfile views: ![views](https://komarev.com/ghpvc/?username=krithikmohan30&color=blue)\n"
+}

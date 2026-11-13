@@ -1,0 +1,58 @@
+name: Daily idea
+
+on:
+  schedule:
+    # 01:30 UTC = 07:00 IST
+    - cron: "30 1 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print the idea instead of sending it"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-idea
+  cancel-in-progress: false
+
+jobs:
+  idea:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Generate and deliver
+        env:
+          PYTHONPATH: src
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USER: ${{ vars.GITHUB_USER || 'krithikmohan30' }}
+        run: python -m radar.main ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Commit the log
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "idea-radar[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "nothing to commit"
+          else
+            git commit -m "idea: $(date -u +%Y-%m-%d)"
+            git push
+          fi
