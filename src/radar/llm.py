@@ -107,13 +107,17 @@ def _rank_model(name: str) -> tuple[int, int, float] | None:
 
     Family outranks version on purpose: pro models have no free tier, so a newer
     pro name would 429 in a free-tier key. Stable flash first, preview flash next,
-    pro only as a last resort.
+    pro only as a last resort. Suffixed variants (-tts, -image, -audio) are skipped:
+    they answer the same generateContent call but reject system instructions.
     """
-    match = re.match(r"gemini-(\d+(?:\.\d+)?)-(flash-lite|flash|pro)", name)
+    match = re.fullmatch(r"gemini-(\d+(?:\.\d+)?)-(flash-lite|flash|pro)(?:-(.+))?", name)
     if not match:
         return None
+    suffix = match.group(3) or ""
+    if suffix and not (suffix.isdigit() or suffix in {"preview", "exp", "latest"}):
+        return None
     family = {"flash": 3, "pro": 2, "flash-lite": 1}[match.group(2)]
-    stable = 0 if ("preview" in name or "exp" in name) else 1
+    stable = 0 if suffix in {"preview", "exp"} else 1
     return (family, stable, float(match.group(1)))
 
 
@@ -145,20 +149,23 @@ def resolve_model(api_key: str, refresh: bool = False) -> str:
     return best
 
 
-def _gemini_call(prompt: str, api_key: str, model: str) -> dict[str, Any]:
+def _gemini_call(
+    prompt: str, api_key: str, model: str, inline_system: bool = False, json_mode: bool = True
+) -> dict[str, Any]:
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent?key={api_key}"
     )
-    body = {
-        "systemInstruction": {"parts": [{"text": SYSTEM}]},
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "temperature": 1.0,
-            "maxOutputTokens": 4096,
-        },
+    text = f"{SYSTEM}\n\n{prompt}" if inline_system else prompt
+    body: dict[str, Any] = {
+        "contents": [{"role": "user", "parts": [{"text": text}]}],
+        "generationConfig": {"temperature": 1.0, "maxOutputTokens": 4096},
     }
+    if not inline_system:
+        body["systemInstruction"] = {"parts": [{"text": SYSTEM}]}
+    if json_mode:
+        body["generationConfig"]["responseMimeType"] = "application/json"
+
     data = _post(url, body)
     try:
         return load_json(data["candidates"][0]["content"]["parts"][0]["text"])
@@ -168,16 +175,32 @@ def _gemini_call(prompt: str, api_key: str, model: str) -> dict[str, Any]:
 
 def gemini(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:
     model = model or os.environ.get("GEMINI_MODEL", "").strip() or resolve_model(api_key)
-    try:
-        return _gemini_call(prompt, api_key, model)
-    except LLMError as exc:
-        if "404" not in str(exc) and "no longer available" not in str(exc):
+    inline_system = False
+    json_mode = True
+
+    for _ in range(3):
+        try:
+            return _gemini_call(prompt, api_key, model, inline_system, json_mode)
+        except LLMError as exc:
+            message = str(exc)
+            if not inline_system and "Developer instruction" in message:
+                print("[llm] model rejects systemInstruction; inlining the system prompt")
+                inline_system = True
+                continue
+            if json_mode and "responseMimeType" in message:
+                print("[llm] model rejects JSON mode; parsing free-form output")
+                json_mode = False
+                continue
+            if "404" in message or "no longer available" in message:
+                replacement = resolve_model(api_key, refresh=True)
+                if replacement == model:
+                    raise
+                print(f"[llm] {model} retired, retrying with {replacement}")
+                model = replacement
+                continue
             raise
-        replacement = resolve_model(api_key, refresh=True)
-        if replacement == model:
-            raise
-        print(f"[llm] {model} retired, retrying with {replacement}")
-        return _gemini_call(prompt, api_key, replacement)
+
+    raise LLMError(f"gemini gave up after retries against {model}")
 
 
 def groq(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:

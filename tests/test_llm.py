@@ -91,6 +91,46 @@ def test_resolve_model_prefers_newest_stable_flash(monkeypatch):
     assert llm.resolve_model("abc12345") == "gemini-3.8-flash"
 
 
+def test_resolve_model_skips_tts_and_image_variants(monkeypatch):
+    llm._MODEL_CACHE.clear()
+    models = {
+        "models": [
+            {
+                "name": "models/gemini-3.8-flash-tts",
+                "supportedGenerationMethods": ["generateContent"],
+            },
+            {
+                "name": "models/gemini-3.8-flash-image",
+                "supportedGenerationMethods": ["generateContent"],
+            },
+            {
+                "name": "models/gemini-3.5-flash",
+                "supportedGenerationMethods": ["generateContent"],
+            },
+        ]
+    }
+    monkeypatch.setattr(llm.requests, "get", lambda *a, **k: FakeResp(200, models))
+    assert llm.resolve_model("zzz99999") == "gemini-3.5-flash"
+
+
+def test_gemini_inlines_system_prompt_when_rejected(monkeypatch):
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
+    seen = []
+
+    def fake_post(url, **kwargs):
+        body = kwargs["json"]
+        seen.append("systemInstruction" in body)
+        if "systemInstruction" in body:
+            return FakeResp(
+                400, {"error": {"message": "Developer instruction is not enabled for this model"}}
+            )
+        return FakeResp(200, gemini_body())
+
+    monkeypatch.setattr(llm.requests, "post", fake_post)
+    assert llm.gemini("prompt", "key")["title"] == "Spec Drift"
+    assert seen == [True, False]
+
+
 def test_gemini_recovers_from_retired_model(monkeypatch):
     llm._MODEL_CACHE.clear()
     models = {
