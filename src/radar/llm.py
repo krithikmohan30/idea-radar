@@ -196,7 +196,7 @@ def _gemini_call(
 
 def gemini(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:
     explicit = model or os.environ.get("GEMINI_MODEL", "").strip()
-    candidates = [explicit] if explicit else resolve_models(api_key)[:3]
+    candidates = [explicit] if explicit else resolve_models(api_key)[:5]
     deadline = time.monotonic() + DEADLINE_SECONDS
     last: Exception | None = None
 
@@ -274,43 +274,107 @@ def groq(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:
         raise LLMError(f"unexpected Groq payload: {json.dumps(data)[:300]}") from exc
 
 
-def template(prompt_signals: list[Signal]) -> dict[str, Any]:
-    """No-key fallback: a real lead built from the most buildable signal.
+ENGAGEMENT = {
+    "github": "stars",
+    "hn": "points",
+    "show_hn": "points",
+    "lobsters": "points",
+    "devto": "reactions",
+    "arxiv": "citations",
+}
 
-    Ship-shaped sources (what people are shipping, what repos are taking off) beat
-    a news story when there is no model to do the reasoning.
+FRAMINGS = {
+    "radar": (
+        "Radar",
+        "a one-page board that tracks {topic} and shows exactly what changed since yesterday",
+        "collect and normalise the feed, store it",
+        "diff against yesterday, publish the board",
+    ),
+    "lint": (
+        "Lint",
+        "a CLI that checks whether your project is exposed to {topic} and ranks what to fix first",
+        "define the checks and their severities",
+        "run them over a sample project, ship the CLI + README",
+    ),
+    "brief": (
+        "Brief",
+        "a two-minute explainer that turns {topic} into the 5 things that actually matter",
+        "pull the primary sources, extract claims",
+        "write the brief, deploy the page, add the sources table",
+    ),
+}
+
+
+def _clean_topic(title: str) -> str:
+    text = re.sub(r"^(show|ask|tell) hn:\s*", "", title.strip(), flags=re.I)
+    text = re.sub(r"^[\w.-]+/[\w.-]+:\s*", "", text)
+    text = re.sub(r"\s*[,:;|]\s*.*$", "", text)
+    return " ".join(text.split()[:7]).strip(" .!?") or "today's top signal"
+
+
+SOURCE_LABEL = {
+    "hn": "Hacker News",
+    "show_hn": "Show HN",
+    "github": "GitHub",
+    "lobsters": "Lobsters",
+    "devto": "dev.to",
+    "arxiv": "arXiv",
+}
+
+
+def _name_from(topic: str, suffix: str) -> str:
+    words = [
+        w
+        for w in re.findall(r"[A-Za-z][A-Za-z0-9]{2,}", topic)
+        if w.lower() not in {"the", "for", "and", "with", "your"}
+    ]
+    stem = words[0] if words else "Signal"
+    return f"{stem[0].upper()}{stem[1:]} {suffix}"
+
+
+def template(prompt_signals: list[Signal]) -> dict[str, Any]:
+    """No-key or overloaded-model fallback: a real lead from the most buildable signal.
+
+    Ship-shaped sources (what people are shipping, what repos are taking off) beat a
+    news story when there is no model doing the reasoning. The framing rotates by
+    topic so consecutive fallbacks are not the same canned product.
     """
     if not prompt_signals:
         raise LLMError("no signals to build a fallback from")
     buildable = ("show_hn", "github", "devto", "lobsters")
     pool = [s for s in prompt_signals if s.source in buildable] or prompt_signals
     top = max(pool, key=lambda s: s.score + 2 * s.comments)
-    clean = re.sub(r"^(show|ask|tell) hn:\s*", "", top.title, flags=re.I).strip(" .")
-    words = [w.strip(".,:;()[]") for w in clean.split() if len(w) > 3][:5]
-    topic = " ".join(words) or "today's top signal"
+    topic = _clean_topic(top.title)
+    key = sorted(FRAMINGS)[sum(map(ord, topic)) % len(FRAMINGS)]
+    suffix, one_liner, day1, day2 = FRAMINGS[key]
+    name = _name_from(topic, suffix)
+    unit = ENGAGEMENT.get(top.source, "points")
+    traction = f"{top.score:,} {unit}" if top.score else "fresh today"
+    source_label = SOURCE_LABEL.get(top.source, top.source)
+
     return {
-        "title": f"Signal Sifter: a daily triage tool for {topic}",
-        "one_liner": (
-            f"A small CLI/site that tracks '{top.title[:70]}' and turns new mentions into a "
-            "ranked digest you can act on."
+        "title": f"{name}: {topic}",
+        "one_liner": one_liner.format(topic=topic) + ".",
+        "why_now": (
+            f"'{top.title[:90]}' is the most engaged builder signal in today's feed "
+            f"({traction}). The gap is not the announcement, it is the missing tool that "
+            "makes it usable on Monday morning."
         ),
-        "why_now": f"This is today's loudest item ({top.score} points). The angle is not the story itself, "
-        "but the missing tooling around it: nobody has packaged the follow-up reads, alternatives, and "
-        "open questions into one page.",
-        "build_plan": {
-            "Day 1": "Fetch the source, normalise items into SQLite, rank by engagement.",
-            "Day 2": "Generate a one-page HTML digest, deploy to Vercel/Pages, write the README.",
-        },
+        "build_plan": {"Day 1": day1, "Day 2": day2},
         "stack": ["Python", "requests", "SQLite", "GitHub Pages"],
-        "repo_name": slug(topic) + "-radar",
-        "readme_hook": f"Everything worth reading about {topic}, ranked and refreshed daily.",
+        "repo_name": slug(name),
+        "readme_hook": f"{topic}: the parts that matter, in one page.",
         "profile_fit": {
             "score": 6,
-            "reason": "Shows data plumbing + a shipped artifact, but it is a weaker story than a "
-            "trend-timed tool. Use as a lead, not a finished spec.",
+            "reason": "Shows data plumbing plus a shipped artifact, but this is a lead rather "
+            "than a reasoned spec. Treat it as a prompt to think, not a finished plan.",
         },
-        "risk": "Scraping rules and stale data if the source changes its API.",
-        "sources": [{"title": top.title, "url": top.url}],
+        "risk": f"Depends on {source_label} staying accessible and the topic still being "
+        "relevant in a week.",
+        "sources": [
+            {"title": s.title, "url": s.url}
+            for s in sorted(prompt_signals, key=lambda s: s.score, reverse=True)[:3]
+        ],
     }
 
 

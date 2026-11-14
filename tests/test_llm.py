@@ -220,6 +220,38 @@ def test_groq_parses_response(monkeypatch):
     assert llm.groq("prompt", "key")["title"] == "Spec Drift"
 
 
+def test_template_prefers_buildable_sources_and_cleans_titles():
+    signals = [
+        Signal("hn", "Company raises $50M", "https://example.com/news", score=900),
+        Signal(
+            "github",
+            "acme/gestalt: MobileGestalt editor for iOS 27.x, featuring presets",
+            "https://github.com/acme/gestalt",
+            score=7430,
+        ),
+    ]
+    payload = llm.template(signals)
+    assert "gestalt" in payload["repo_name"]
+    assert "7,430 stars" in payload["why_now"]
+    assert "acme/" not in payload["title"]
+    assert len(payload["sources"]) == 2
+
+
+def test_clean_topic_strips_prefixes_and_clauses():
+    assert (
+        llm._clean_topic("Show HN: Desk Widgets \u2013 drag and drop")
+        == "Desk Widgets \u2013 drag and drop"
+    )
+    assert llm._clean_topic("acme/repo: A tool, featuring things") == "A tool"
+    assert llm._clean_topic("") == "today's top signal"
+
+
+def test_template_rotates_framings():
+    a = llm.template([Signal("github", "alpha beta gamma", "u1", score=10)])
+    b = llm.template([Signal("github", "zeta omega delta", "u2", score=10)])
+    assert a["title"] != b["title"]
+
+
 def test_generate_falls_back_without_keys(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("GEMINI_MODEL", raising=False)
