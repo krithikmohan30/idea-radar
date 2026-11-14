@@ -1,10 +1,10 @@
 [
   {
     "date": "2026-11-14",
-    "title": "MobileGestalt Brief: An MobileGestalt editor for iOS 27.x",
-    "repo_name": "mobilegestalt-brief",
-    "one_liner": "a two-minute explainer that turns An MobileGestalt editor for iOS 27.x into the 5 things that actually matter.",
-    "engine": "template",
-    "fit": 6
+    "title": "MCP Fuzzer: Automated Boundary and Schema Stress-Tester for MCP Servers",
+    "repo_name": "mcp-fuzzer",
+    "one_liner": "A CLI tool that inspects Model Context Protocol (MCP) server tool schemas and uses Claude to generate adversarial payloads, surfacing unhandled crashes and permission leaks.",
+    "engine": "llm",
+    "fit": 9
   }
 ]
