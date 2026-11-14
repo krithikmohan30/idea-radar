@@ -66,10 +66,13 @@ Profile fit 9/10 — No developer-tooling repo yet; proves library design, not j
 2. Send your new bot any message, then open
    `https://api.telegram.org/bot<TOKEN>/getUpdates` and copy `message.chat.id`.
 
-### 2. Free model key
+### 2. Free model keys
 
 - Gemini: <https://aistudio.google.com/apikey> → create key.
-- Or Groq: <https://console.groq.com/keys>.
+- Groq (recommended backup): <https://console.groq.com/keys>.
+
+Two providers matter because free tiers run out. `LLM_PROVIDER=auto` tries Gemini,
+then Groq, then the deterministic fallback.
 
 ### 3. Repo secrets
 
@@ -77,6 +80,14 @@ Profile fit 9/10 — No developer-tooling repo yet; proves library design, not j
 gh secret set TELEGRAM_BOT_TOKEN --repo <you>/idea-radar
 gh secret set TELEGRAM_CHAT_ID    --repo <you>/idea-radar
 gh secret set GEMINI_API_KEY      --repo <you>/idea-radar
+gh secret set GROQ_API_KEY        --repo <you>/idea-radar   # optional backup
+```
+
+Verify the wiring before trusting the schedule:
+
+```powershell
+gh workflow run check.yml --repo <you>/idea-radar
+gh run watch --repo <you>/idea-radar
 ```
 
 ### 4. Test before you trust it
@@ -122,6 +133,7 @@ src/radar/
   main.py      orchestrator
 ideas/         the dated log this repo exists to produce
 data/          history + profile cache
+tools/         wiring diagnostics (telegram_check.py, provider_check.py)
 ```
 
 ## Ideas accepted so far

@@ -251,8 +251,51 @@ def _gemini_model(prompt: str, api_key: str, model: str, deadline: float) -> dic
     raise LLMError(f"gemini gave up after retries against {model}")
 
 
+GROQ_PREFERENCE = [
+    r"llama-3\.3-70b",
+    r"gpt-oss-120b",
+    r"llama-4",
+    r"kimi-k2",
+    r"qwen3",
+    r"70b",
+    r"versatile",
+    r"instruct",
+]
+
+
+def resolve_groq_model(api_key: str, refresh: bool = False) -> str:
+    """Pick a Groq chat model from what the key can actually see.
+
+    Same reason as the Gemini lookup: model ids get retired, and a hard-coded id
+    turns a working bot into a stack trace six months later.
+    """
+    if not refresh and _MODEL_CACHE.get(f"groq:{api_key[:8]}"):
+        return _MODEL_CACHE[f"groq:{api_key[:8]}"][0]
+
+    resp = requests.get(
+        "https://api.groq.com/openai/v1/models",
+        headers={"Authorization": f"Bearer {api_key}"},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    ids = [m["id"] for m in resp.json().get("data", []) if m.get("id")]
+    if not ids:
+        raise LLMError("groq returned no models")
+
+    chosen = ids[0]
+    for pattern in GROQ_PREFERENCE:
+        match = next((i for i in ids if re.search(pattern, i)), None)
+        if match:
+            chosen = match
+            break
+    _MODEL_CACHE[f"groq:{api_key[:8]}"] = [chosen]
+    print(f"[llm] groq model: {chosen} (of {len(ids)} available)")
+    return chosen
+
+
 def groq(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:
-    model = model or os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+    explicit = model or os.environ.get("GROQ_MODEL", "").strip()
+    model = explicit or resolve_groq_model(api_key)
     body = {
         "model": model,
         "temperature": 0.9,
@@ -263,11 +306,25 @@ def groq(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:
             {"role": "user", "content": prompt},
         ],
     }
-    data = _post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        body,
-        headers={"Authorization": f"Bearer {api_key}"},
-    )
+    try:
+        data = _post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            body,
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+    except LLMError as exc:
+        if "model" not in str(exc).lower() and "404" not in str(exc):
+            raise
+        replacement = resolve_groq_model(api_key, refresh=True)
+        if replacement == model:
+            raise
+        print(f"[llm] groq model {model} unavailable, retrying with {replacement}")
+        body["model"] = replacement
+        data = _post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            body,
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
     try:
         return load_json(data["choices"][0]["message"]["content"])
     except (KeyError, IndexError) as exc:

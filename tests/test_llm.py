@@ -215,6 +215,7 @@ def test_gemini_rejects_bad_key_without_retry(monkeypatch):
 
 
 def test_groq_parses_response(monkeypatch):
+    monkeypatch.setenv("GROQ_MODEL", "llama-3.3-70b-versatile")
     body = {"choices": [{"message": {"content": json.dumps(IDEA)}}]}
     monkeypatch.setattr(llm.requests, "post", lambda *a, **k: FakeResp(200, body))
     assert llm.groq("prompt", "key")["title"] == "Spec Drift"
@@ -250,6 +251,35 @@ def test_template_rotates_framings():
     a = llm.template([Signal("github", "alpha beta gamma", "u1", score=10)])
     b = llm.template([Signal("github", "zeta omega delta", "u2", score=10)])
     assert a["title"] != b["title"]
+
+
+def test_resolve_groq_model_prefers_known_family(monkeypatch):
+    llm._MODEL_CACHE.clear()
+    models = {
+        "data": [
+            {"id": "whisper-large-v3"},
+            {"id": "llama-3.3-70b-versatile"},
+            {"id": "llama-3.1-8b-instant"},
+        ]
+    }
+    monkeypatch.setattr(llm.requests, "get", lambda *a, **k: FakeResp(200, models))
+    assert llm.resolve_groq_model("ggg11111") == "llama-3.3-70b-versatile"
+
+
+def test_groq_uses_discovered_model(monkeypatch):
+    llm._MODEL_CACHE.clear()
+    models = {"data": [{"id": "openai/gpt-oss-120b"}]}
+    monkeypatch.setattr(llm.requests, "get", lambda *a, **k: FakeResp(200, models))
+    monkeypatch.delenv("GROQ_MODEL", raising=False)
+    sent = {}
+
+    def fake_post(url, **kwargs):
+        sent["model"] = kwargs["json"]["model"]
+        return FakeResp(200, {"choices": [{"message": {"content": json.dumps(IDEA)}}]})
+
+    monkeypatch.setattr(llm.requests, "post", fake_post)
+    assert llm.groq("prompt", "hhh22222")["title"] == "Spec Drift"
+    assert sent["model"] == "openai/gpt-oss-120b"
 
 
 def test_generate_falls_back_without_keys(monkeypatch):
