@@ -152,6 +152,34 @@ def test_gemini_moves_to_next_model_when_overloaded(monkeypatch):
     assert llm.gemini("prompt", "qqq11111")["title"] == "Spec Drift"
 
 
+def test_gemini_gives_up_when_out_of_time(monkeypatch):
+    llm._MODEL_CACHE.clear()
+    models = {
+        "models": [
+            {"name": "models/gemini-3.8-flash", "supportedGenerationMethods": ["generateContent"]}
+        ]
+    }
+    monkeypatch.setattr(llm.requests, "get", lambda *a, **k: FakeResp(200, models))
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    monkeypatch.setattr(llm, "DEADLINE_SECONDS", 0.0)
+    with pytest.raises(llm.LLMError):
+        llm.gemini("prompt", "ddd44444")
+
+
+def test_post_stops_after_two_attempts(monkeypatch):
+    calls = {"n": 0}
+
+    def fake_post(*args, **kwargs):
+        calls["n"] += 1
+        return FakeResp(503, {"error": "high demand"})
+
+    monkeypatch.setattr(llm.requests, "post", fake_post)
+    monkeypatch.setattr(llm.time, "sleep", lambda _s: None)
+    with pytest.raises(llm.LLMError):
+        llm._post("https://example.com", {"a": 1})
+    assert calls["n"] == 2
+
+
 def test_gemini_recovers_from_retired_model(monkeypatch):
     llm._MODEL_CACHE.clear()
     models = {

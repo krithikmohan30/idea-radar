@@ -74,20 +74,29 @@ class LLMError(RuntimeError):
     pass
 
 
-_MODEL_CACHE: dict[str, str] = {}
+_MODEL_CACHE: dict[str, list[str]] = {}
+
+# A single daily idea is not worth 14 minutes of hanging sockets. The model ladder
+# provides the retries; each HTTP attempt just needs to be quick and bounded.
+CALL_TIMEOUT = 40.0
+ATTEMPTS_PER_MODEL = 2
+DEADLINE_SECONDS = float(os.environ.get("LLM_DEADLINE_SECONDS", "240"))
 
 
 def _post(
-    url: str, payload: dict[str, Any], headers: dict[str, str] | None = None
+    url: str,
+    payload: dict[str, Any],
+    headers: dict[str, str] | None = None,
+    timeout: float = CALL_TIMEOUT,
 ) -> dict[str, Any]:
     last: Exception | None = None
-    for attempt in range(3):
+    for attempt in range(ATTEMPTS_PER_MODEL):
         try:
             resp = requests.post(
                 url,
                 json=payload,
                 headers={"Content-Type": "application/json", **(headers or {})},
-                timeout=90,
+                timeout=timeout,
             )
         except requests.RequestException as exc:
             last = exc
@@ -97,8 +106,8 @@ def _post(
             last = LLMError(f"{resp.status_code}: {resp.text[:400]}")
             if resp.status_code not in {429, 500, 502, 503, 504}:
                 raise last
-        if attempt < 2:
-            time.sleep(5 if attempt == 0 else 20)
+        if attempt + 1 < ATTEMPTS_PER_MODEL:
+            time.sleep(5)
     raise LLMError(str(last))
 
 
@@ -157,7 +166,12 @@ def resolve_model(api_key: str, refresh: bool = False) -> str:
 
 
 def _gemini_call(
-    prompt: str, api_key: str, model: str, inline_system: bool = False, json_mode: bool = True
+    prompt: str,
+    api_key: str,
+    model: str,
+    inline_system: bool = False,
+    json_mode: bool = True,
+    timeout: float = CALL_TIMEOUT,
 ) -> dict[str, Any]:
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -173,7 +187,7 @@ def _gemini_call(
     if json_mode:
         body["generationConfig"]["responseMimeType"] = "application/json"
 
-    data = _post(url, body)
+    data = _post(url, body, timeout=timeout)
     try:
         return load_json(data["candidates"][0]["content"]["parts"][0]["text"])
     except (KeyError, IndexError) as exc:
@@ -183,27 +197,38 @@ def _gemini_call(
 def gemini(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:
     explicit = model or os.environ.get("GEMINI_MODEL", "").strip()
     candidates = [explicit] if explicit else resolve_models(api_key)[:3]
+    deadline = time.monotonic() + DEADLINE_SECONDS
     last: Exception | None = None
 
     for index, candidate in enumerate(candidates):
+        remaining = deadline - time.monotonic()
+        if remaining < 15:
+            print("[llm] out of time budget, stopping the model ladder")
+            break
+        started = time.monotonic()
         try:
-            return _gemini_model(prompt, api_key, candidate)
+            return _gemini_model(prompt, api_key, candidate, deadline)
         except LLMError as exc:
             last = exc
-            print(f"[llm] {candidate} failed: {str(exc)[:160]}")
+            elapsed = time.monotonic() - started
+            print(f"[llm] {candidate} failed after {elapsed:.0f}s: {str(exc)[:160]}")
             if index + 1 < len(candidates):
                 print(f"[llm] trying {candidates[index + 1]}")
     raise LLMError(str(last))
 
 
-def _gemini_model(prompt: str, api_key: str, model: str) -> dict[str, Any]:
+def _gemini_model(prompt: str, api_key: str, model: str, deadline: float) -> dict[str, Any]:
     """One model, with the per-model fallbacks: system prompt, JSON mode, retirement."""
     inline_system = False
     json_mode = True
 
     for _ in range(3):
+        remaining = deadline - time.monotonic()
+        if remaining < 10:
+            raise LLMError("time budget exhausted")
+        timeout = max(10.0, min(CALL_TIMEOUT, remaining))
         try:
-            return _gemini_call(prompt, api_key, model, inline_system, json_mode)
+            return _gemini_call(prompt, api_key, model, inline_system, json_mode, timeout)
         except LLMError as exc:
             message = str(exc)
             if not inline_system and "Developer instruction" in message:
