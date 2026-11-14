@@ -286,19 +286,19 @@ ENGAGEMENT = {
 FRAMINGS = {
     "radar": (
         "Radar",
-        "a one-page board that tracks {topic} and shows exactly what changed since yesterday",
+        "A one-page board that tracks {topic} and shows exactly what changed since yesterday",
         "collect and normalise the feed, store it",
         "diff against yesterday, publish the board",
     ),
     "lint": (
         "Lint",
-        "a CLI that checks whether your project is exposed to {topic} and ranks what to fix first",
+        "A CLI that checks whether your project is exposed to {topic} and ranks what to fix first",
         "define the checks and their severities",
         "run them over a sample project, ship the CLI + README",
     ),
     "brief": (
         "Brief",
-        "a two-minute explainer that turns {topic} into the 5 things that actually matter",
+        "A two-minute explainer that turns {topic} into the 5 things that actually matter",
         "pull the primary sources, extract claims",
         "write the brief, deploy the page, add the sources table",
     ),
