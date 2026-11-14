@@ -93,13 +93,15 @@ def duplicates(
 def append_markdown(idea: dict[str, Any], markdown: str, day: str) -> Path:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     path = LOG_DIR / f"{day[:7]}.md"
-    if not path.exists():
-        path.write_text(
-            f"# Idea log — {day[:7]}\n\nOne idea per day. Newest last.\n\n",
-            encoding="utf-8",
-        )
-    with path.open("a", encoding="utf-8") as fh:
-        fh.write(markdown.rstrip() + "\n\n---\n\n")
+    body = path.read_text(encoding="utf-8") if path.exists() else ""
+
+    # A same-day rerun replaces that day's entry instead of appending a second one.
+    entries = ["## " + block.strip() for block in re.split(r"(?m)^## ", body)[1:]]
+    entries = [block for block in entries if not block.startswith(f"## {day} ")]
+    entries.append(markdown.strip())
+
+    header = f"# Idea log — {day[:7]}\n\nOne idea per day, newest last.\n"
+    path.write_text(header + "\n" + "\n\n---\n\n".join(entries) + "\n", encoding="utf-8")
     return path
 
 

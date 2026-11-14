@@ -147,6 +147,29 @@ def test_append_markdown_creates_month_file(tmp_path, monkeypatch):
     assert "Spec Drift" in text
 
 
+def test_append_markdown_replaces_same_day(tmp_path, monkeypatch):
+    monkeypatch.setattr(state, "LOG_DIR", tmp_path / "ideas")
+    first = render_markdown(from_json({**PAYLOAD, "title": "Old Idea"}), "2026-11-13")
+    second = render_markdown(from_json(PAYLOAD), "2026-11-13")
+    path = state.append_markdown(PAYLOAD, first, "2026-11-13")
+    state.append_markdown(PAYLOAD, second, "2026-11-13")
+    text = path.read_text(encoding="utf-8")
+    assert text.count("## 2026-11-13") == 1
+    assert "Old Idea" not in text
+    assert "Spec Drift" in text
+
+
+def test_append_markdown_keeps_other_days(tmp_path, monkeypatch):
+    monkeypatch.setattr(state, "LOG_DIR", tmp_path / "ideas")
+    path = state.append_markdown(
+        PAYLOAD, render_markdown(from_json(PAYLOAD), "2026-11-12"), "2026-11-12"
+    )
+    state.append_markdown(PAYLOAD, render_markdown(from_json(PAYLOAD), "2026-11-13"), "2026-11-13")
+    text = path.read_text(encoding="utf-8")
+    assert text.count("## 2026-11-") == 2
+    assert text.index("2026-11-12") < text.index("2026-11-13")
+
+
 def test_record_replaces_same_day():
     records = [{"date": "2026-11-13", "title": "old"}]
     records = state.record(records, PAYLOAD, "2026-11-13")
