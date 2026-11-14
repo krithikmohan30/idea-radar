@@ -1,0 +1,10 @@
+[
+  {
+    "date": "2026-11-14",
+    "title": "Signal Sifter: a daily triage tool for huamidev/GestaltX MobileGestalt editor 27.x featuring",
+    "repo_name": "huamidev-gestaltx-mobilegestalt-editor-2-radar",
+    "one_liner": "A small CLI/site that tracks 'huamidev/GestaltX: An MobileGestalt editor for iOS 27.x, featuring reg' and turns new mentions into a ranked digest you can act on.",
+    "engine": "template",
+    "fit": 6
+  }
+]

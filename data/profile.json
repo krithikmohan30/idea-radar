@@ -2,6 +2,22 @@
   "user": "krithikmohan30",
   "repos": [
     {
+      "name": "idea-radar",
+      "description": "One portfolio-grade build idea in Telegram every morning, scored against my GitHub profile",
+      "language": "Python",
+      "stars": 0,
+      "topics": [
+        "automation",
+        "developer-tools",
+        "gemini",
+        "github-actions",
+        "idea-engine",
+        "llm",
+        "python",
+        "telegram-bot"
+      ]
+    },
+    {
       "name": "Ai-assistant",
       "description": "Ai assistant",
       "language": "Python",
