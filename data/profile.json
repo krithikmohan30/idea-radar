@@ -2,6 +2,34 @@
   "user": "krithikmohan30",
   "repos": [
     {
+      "name": "song-player",
+      "description": "A lightweight web-based audio player built for seamless music playback. Features custom play/pause controls, progress tracking, volume adjustment, and playlist management wrapped in a clean, modern UI.",
+      "language": "",
+      "stars": 0,
+      "topics": []
+    },
+    {
+      "name": "iiot-management",
+      "description": "",
+      "language": "JavaScript",
+      "stars": 0,
+      "topics": []
+    },
+    {
+      "name": "reaper",
+      "description": "REAPER: Dependency Bloat and Dead-Code CLI for JS/TS",
+      "language": "TypeScript",
+      "stars": 0,
+      "topics": []
+    },
+    {
+      "name": "Ai-assistant",
+      "description": "Ai assistant",
+      "language": "Python",
+      "stars": 0,
+      "topics": []
+    },
+    {
       "name": "idea-radar",
       "description": "One portfolio-grade build idea in Telegram every morning, scored against my GitHub profile",
       "language": "Python",
@@ -16,34 +44,6 @@
         "python",
         "telegram-bot"
       ]
-    },
-    {
-      "name": "Ai-assistant",
-      "description": "Ai assistant",
-      "language": "Python",
-      "stars": 0,
-      "topics": []
-    },
-    {
-      "name": "reaper",
-      "description": "REAPER: Dependency Bloat and Dead-Code CLI for JS/TS",
-      "language": "TypeScript",
-      "stars": 0,
-      "topics": []
-    },
-    {
-      "name": "song-player",
-      "description": "A lightweight web-based audio player built for seamless music playback. Features custom play/pause controls, progress tracking, volume adjustment, and playlist management wrapped in a clean, modern UI.",
-      "language": "",
-      "stars": 0,
-      "topics": []
-    },
-    {
-      "name": "iiot-management",
-      "description": "",
-      "language": "JavaScript",
-      "stars": 0,
-      "topics": []
     },
     {
       "name": "smartbus-ai",
