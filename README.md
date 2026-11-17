@@ -1,6 +1,6 @@
 # Idea Radar
 
-One buildable project idea in my Telegram every morning at 07:00, mined from that day's
+One buildable project idea in my Telegram every day, mined from that day's
 actual tech signal and scored against my own GitHub profile so it never suggests things
 I have already built.
 
@@ -21,7 +21,7 @@ history is a dated log of what I noticed and what I decided to build.
 Sources: Hacker News front page, Show HN, newly trending GitHub repos, arXiv cs.AI/cs.SE,
 Lobsters, dev.to.
 
-## What a morning looks like
+## What a delivery looks like
 
 ```
 Idea Radar · 2026-11-14
@@ -55,7 +55,7 @@ Profile fit 9/10 — No developer-tooling repo yet; proves library design, not j
 - **Schedule:** GitHub Actions cron, so it runs whether or not my laptop is awake.
 - **Model:** Gemini free tier (Groq as a second option). One call per day.
 - **Fallback:** if every key fails, a deterministic template still produces a lead from the
-  top signal, labelled as a fallback. No silent empty mornings.
+  top signal, labelled as a fallback. No silent empty days.
 - **Cost:** zero. No database, no hosting, no queue. State is a JSON file in the repo.
 
 ## Setup
@@ -97,8 +97,14 @@ gh workflow run daily.yml --repo <you>/idea-radar -f dry_run=true
 gh run watch --repo <you>/idea-radar
 ```
 
-Then a real run: `gh workflow run daily.yml`. After that it fires daily at 01:30 UTC
-(07:00 IST). Change the cron in `.github/workflows/daily.yml` for another timezone.
+Then a real run: `gh workflow run daily.yml`. After that the cron fires daily at 01:30 UTC
+with a 04:30 UTC retry. Change the cron in `.github/workflows/daily.yml` for another timezone.
+
+**On timing, honestly:** GitHub queues `schedule` runs behind interactive traffic and delays
+them on low-activity repos. In practice these have landed 6-11 hours after the cron time, so
+treat the schedule as "once a day", not "at 07:00". A manual `gh workflow run` starts within
+seconds. If punctual delivery ever matters, an external pinger calling the `workflow_dispatch`
+API is the reliable fix; the cron alone will not do it.
 
 ## Local
 

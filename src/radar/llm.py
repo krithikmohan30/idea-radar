@@ -1,5 +1,5 @@
 """LLM providers: Gemini (free tier), Groq (free tier), and a deterministic
-fallback so a missing key or a 429 never produces an empty morning.
+fallback so a missing key or a 429 never produces an empty day.
 """
 
 from __future__ import annotations
