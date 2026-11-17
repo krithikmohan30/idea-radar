@@ -47,21 +47,17 @@ SCHEMA_HINT = """{
   "shortlist": [
     {"rank": 1, "title": "candidate name", "source": "hn|github|lobsters|devto|arxiv|show_hn", "score": 7, "why": "under 10 words"}
   ],
-  "pick": {
-    "title": "short product name + 4-8 word descriptor",
-    "one_liner": "one sentence, what it does for whom",
-    "why_now": "2-3 sentences tying it to today's signals",
-    "build_plan": {"Day 1": "...", "Day 2": "..."},
-    "stack": ["3-5 concrete tools"],
-    "repo_name": "kebab-case repo name",
-    "readme_hook": "the first line of the README that makes someone star it",
-    "profile_fit": {"score": 7, "reason": "why this fills a gap in THIS profile, or what it proves"},
-    "risk": "the one thing most likely to go wrong",
-    "sources": [{"title": "...", "url": "https://exact-url-from-signals"}]
-  }
-}
-
-"shortlist" must hold exactly 4 entries, best first, each from a different source."""
+  "title": "short product name + 4-8 word descriptor",
+  "one_liner": "one sentence, what it does for whom",
+  "why_now": "2-3 sentences tying it to today's signals",
+  "build_plan": {"Day 1": "...", "Day 2": "..."},
+  "stack": ["3-5 concrete tools"],
+  "repo_name": "kebab-case repo name",
+  "readme_hook": "the first line of the README that makes someone star it",
+  "profile_fit": {"score": 7, "reason": "why this fills a gap in THIS profile, or what it proves"},
+  "risk": "the one thing most likely to go wrong",
+  "sources": [{"title": "...", "url": "https://exact-url-from-signals"}]
+}"""
 
 
 def build_prompt(profile_text: str, signals: list[Signal], avoid: list[str]) -> str:
@@ -85,11 +81,17 @@ def build_prompt(profile_text: str, signals: list[Signal], avoid: list[str]) -> 
 ## Task
 Narrow today's signal to one project.
 
-1. Rank the four strongest candidates, each from a different source, in "shortlist".
-2. Write the full spec of number one in "pick".
+1. Rank the four strongest candidates in "shortlist", best first, each from a different source.
+2. Write the full spec of the winner in the TOP-LEVEL fields, not nested inside another key.
+
+Schema:
+{SCHEMA_HINT}
+
+The top-level title/one_liner/why_now/build_plan/stack/repo_name/readme_hook/profile_fit/risk/sources
+must all describe the winner. Every one of them is required; a shortlist alone is not an answer.
 
 Constraints: two evenings max, visible demo in 30 seconds, no duplication of the repos above,
-at least two signals from different sources backing the winner.
+and at least two signals from different sources backing the winner.
 Be concrete about what gets built on day one versus day two. Score profile_fit with the rubric
 from your instructions: 9+ only when it extends a repo this developer already has, and never 10."""
 
