@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
+
+from .sources import normalize_url
 
 ROOT = Path(__file__).resolve().parents[2]
 HISTORY = ROOT / "data" / "history.json"
@@ -68,9 +70,38 @@ def record(records: list[dict[str, Any]], idea: dict[str, Any], day: str) -> lis
             "one_liner": idea.get("one_liner", ""),
             "engine": idea.get("engine", ""),
             "fit": (idea.get("profile_fit") or {}).get("score"),
+            # Kept so tomorrow can refuse to build on the same article again.
+            "sources": [
+                str(s.get("url", ""))
+                for s in idea.get("sources") or []
+                if isinstance(s, dict) and s.get("url")
+            ][:6],
         }
     )
     return records
+
+
+def recent_urls(
+    records: list[dict[str, Any]], days: int = 21, today_iso: str | None = None
+) -> set[str]:
+    """Every URL that backed an idea in the last `days` days.
+
+    Titles drift, links do not. A write-up that stays on a front page for a week
+    is one story, and it must not supply the evidence five days running.
+    """
+    if not records:
+        return set()
+    anchor = today_iso or today()
+    cutoff = (date.fromisoformat(anchor) - timedelta(days=days)).isoformat()
+    used: set[str] = set()
+    for rec in records:
+        if str(rec.get("date", "")) < cutoff:
+            continue
+        for url in rec.get("sources") or []:
+            norm = normalize_url(str(url))
+            if norm:
+                used.add(norm)
+    return used
 
 
 def similar(a: str, b: str, threshold: float = 0.4) -> bool:

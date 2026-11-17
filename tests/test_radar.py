@@ -3,8 +3,22 @@
 from __future__ import annotations
 
 from radar import notify, state
-from radar.idea import from_json, load_json, render_markdown, render_telegram, slug
-from radar.sources import Signal, top_signals
+from radar.idea import (
+    calibrate,
+    fit_score,
+    from_json,
+    load_json,
+    render_markdown,
+    render_telegram,
+    slug,
+)
+from radar.sources import (
+    Signal,
+    collapse_duplicates,
+    drop_seen,
+    normalize_url,
+    top_signals,
+)
 
 PAYLOAD = {
     "title": "Spec Drift: OpenAPI breaking-change detector",
@@ -183,3 +197,119 @@ def test_has_good_idea_only_counts_llm_entries():
     assert not state.has_good_idea(template, "2026-11-13")
     assert state.has_good_idea(real, "2026-11-13")
     assert not state.has_good_idea(real, "2026-11-14")
+
+
+# --- source diversity -------------------------------------------------------
+
+
+def _sig(source: str, title: str, url: str, score: int = 0, comments: int = 0) -> Signal:
+    return Signal(source, title, url, score=score, comments=comments)
+
+
+def test_normalize_url_ignores_scheme_www_and_tracking():
+    assert normalize_url("https://www.Example.com/a/?utm_source=hn#top") == "example.com/a"
+    assert normalize_url("http://example.com/a") == "example.com/a"
+    assert normalize_url("") == ""
+
+
+def test_collapse_duplicates_keeps_the_loudest_copy():
+    pool = [
+        _sig("hn", "MCP is dead simple", "https://example.com/mcp?ref=hn", score=10),
+        _sig("lobsters", "MCP is dead simple", "https://example.com/mcp", score=90, comments=4),
+        _sig("github", "Something else", "https://github.com/x/y", score=5),
+    ]
+    out = collapse_duplicates(pool)
+    assert len(out) == 2
+    kept = next(s for s in out if "example.com/mcp" in s.url)
+    assert kept.source == "lobsters"
+
+
+def test_drop_seen_removes_previously_cited_links():
+    pool = [
+        _sig("hn", "Old story", "https://example.com/old"),
+        _sig("hn", "New story", "https://example.com/new"),
+    ]
+    kept, dropped = drop_seen(pool, {"example.com/old"})
+    assert dropped == 1
+    assert [s.title for s in kept] == ["New story"]
+
+
+def test_drop_seen_is_a_noop_without_history():
+    pool = [_sig("hn", "A", "https://example.com/a")]
+    kept, dropped = drop_seen(pool, set())
+    assert dropped == 0
+    assert len(kept) == 1
+
+
+def test_record_keeps_source_urls():
+    records = state.record([], {**PAYLOAD, "engine": "llm"}, "2026-11-14")
+    assert records[0]["sources"] == ["https://example.com/a"]
+
+
+def test_recent_urls_respects_the_window_and_normalises():
+    records = [
+        {"date": "2026-11-14", "sources": ["https://www.Example.com/x?utm=1"]},
+        {"date": "2026-09-01", "sources": ["https://example.com/old"]},
+    ]
+    used = state.recent_urls(records, days=21, today_iso="2026-11-17")
+    assert "example.com/x" in used
+    assert "example.com/old" not in used
+
+
+def test_recent_urls_is_empty_without_history():
+    assert state.recent_urls([]) == set()
+
+
+# --- score calibration ------------------------------------------------------
+
+
+def test_calibrate_caps_a_perfect_score():
+    idea = from_json({**PAYLOAD, "profile_fit": {"score": 10, "reason": "flawless"}})
+    assert fit_score(calibrate(idea)) == 9
+
+
+def test_calibrate_caps_when_the_shortlist_has_no_spread():
+    payload = {
+        **PAYLOAD,
+        "profile_fit": {"score": 9, "reason": "extends reaper"},
+        "shortlist": [
+            {"rank": i, "title": f"candidate {i}", "source": "hn", "score": 9} for i in range(1, 5)
+        ],
+    }
+    assert fit_score(calibrate(from_json(payload))) == 8
+
+
+def test_calibrate_leaves_a_genuinely_ranked_shortlist_alone():
+    payload = {
+        **PAYLOAD,
+        "profile_fit": {"score": 9, "reason": "extends reaper"},
+        "shortlist": [
+            {"rank": 1, "title": "a", "source": "hn", "score": 9},
+            {"rank": 2, "title": "b", "source": "github", "score": 6},
+            {"rank": 3, "title": "c", "source": "devto", "score": 5},
+        ],
+    }
+    assert fit_score(calibrate(from_json(payload))) == 9
+
+
+def test_from_json_unwraps_pick_and_keeps_the_shortlist():
+    idea = from_json(
+        {
+            "shortlist": [{"rank": 1, "title": "Alpha", "source": "hn", "score": 7}],
+            "pick": PAYLOAD,
+        }
+    )
+    assert idea.title == PAYLOAD["title"]
+    assert [c["title"] for c in idea.shortlist] == ["Alpha"]
+
+
+def test_markdown_shows_the_ranking():
+    idea = from_json(
+        {
+            **PAYLOAD,
+            "shortlist": [{"rank": 1, "title": "Alpha", "source": "hn", "score": 7}],
+        }
+    )
+    md = render_markdown(idea, "2026-11-14")
+    assert "**Ranked:**" in md
+    assert "1. **Alpha**" in md

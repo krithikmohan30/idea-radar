@@ -320,3 +320,23 @@ def test_prompt_includes_candidates_and_avoid_list():
     assert "PROFILE-MARK" in prompt
     assert "https://example.com" in prompt
     assert "Do not repeat me" in prompt
+
+
+def test_template_produces_a_four_entry_shortlist():
+    signals = [
+        Signal("github", "alpha one", "https://example.com/a", score=10),
+        Signal("hn", "beta two", "https://example.com/b", score=9),
+        Signal("lobsters", "gamma three", "https://example.com/c", score=8),
+        Signal("devto", "delta four", "https://example.com/d", score=7),
+    ]
+    payload = llm.template(signals)
+    assert len(payload["shortlist"]) == 4
+    assert payload["shortlist"][0]["rank"] == 1
+    assert payload["shortlist"][0]["title"] == "alpha one"
+
+
+def test_prompt_asks_for_a_cross_source_shortlist():
+    prompt = llm.build_prompt("profile", [Signal("hn", "x", "https://e.com/x")], [])
+    assert '"shortlist"' in prompt
+    assert "different source" in prompt
+    assert "A 10 is not allowed" in llm.SYSTEM

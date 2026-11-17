@@ -23,6 +23,8 @@ class Idea:
     profile_fit: dict[str, Any] = field(default_factory=dict)
     risk: str = ""
     sources: list[dict[str, str]] = field(default_factory=list)
+    # The candidates this idea beat, so the narrowing is visible and auditable.
+    shortlist: list[dict[str, Any]] = field(default_factory=list)
     engine: str = ""
 
     def as_dict(self) -> dict[str, Any]:
@@ -52,8 +54,35 @@ def _plan(value: Any) -> dict[str, str]:
     return {}
 
 
+def _shortlist(value: Any) -> list[dict[str, Any]]:
+    """The ranked candidates the pick beat. Tolerant of sloppy model shapes."""
+    if not isinstance(value, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for index, item in enumerate(value, 1):
+        if isinstance(item, dict):
+            title = str(item.get("title") or item.get("name") or "").strip()
+            if not title:
+                continue
+            out.append(
+                {
+                    "rank": item.get("rank") or index,
+                    "title": title,
+                    "source": str(item.get("source") or "").strip(),
+                    "score": item.get("score"),
+                    "why": str(item.get("why") or item.get("reason") or "").strip(),
+                }
+            )
+    return out[:6]
+
+
 def from_json(payload: dict[str, Any], engine: str = "llm") -> Idea:
     """Tolerant normaliser: the model is allowed to be slightly sloppy."""
+    # Newer prompt wraps the idea in a "pick" key; older responses keep it flat.
+    pick = payload.get("pick")
+    if isinstance(pick, dict):
+        payload = {**payload, **pick}
+
     fit = payload.get("profile_fit") or {}
     if not isinstance(fit, dict):
         fit = {"score": fit}
@@ -73,6 +102,7 @@ def from_json(payload: dict[str, Any], engine: str = "llm") -> Idea:
             for s in (payload.get("sources") or [])
             if isinstance(s, dict)
         ],
+        shortlist=_shortlist(payload.get("shortlist")),
         engine=engine,
     )
     if not idea.repo_name:
@@ -92,6 +122,43 @@ def fit_score(idea: Idea) -> int:
         return max(0, min(10, int(float(raw))))
     except (TypeError, ValueError):
         return 0
+
+
+def calibrate(idea: Idea) -> Idea:
+    """Stop the scorer flattering everything.
+
+    Four consecutive ideas came back 9, 9, 9, 8, which is not a judgement, it is a
+    habit. Two rules the model cannot argue with:
+
+    - 10 is reserved. A student portfolio does not warrant a perfect score, so a 10
+      becomes a 9 and says so.
+    - If every shortlisted candidate scored 8 or better, nothing was actually
+      ranked, so the winner is capped at 8.
+    """
+    score = fit_score(idea)
+    note = ""
+
+    scores: list[int] = []
+    for item in idea.shortlist:
+        try:
+            scores.append(int(float(item.get("score"))))
+        except (TypeError, ValueError):
+            continue
+
+    if score > 9:
+        score = 9
+        note = "capped from 10: nothing in a student portfolio is a certain 10"
+    elif len(scores) >= 3 and min(scores) >= 8 and score > 8:
+        score = 8
+        note = "capped at 8: every shortlisted candidate scored 8+, so none was really ranked"
+
+    if note:
+        fit = dict(idea.profile_fit)
+        reason = str(fit.get("reason", "")).strip()
+        fit["score"] = score
+        fit["reason"] = f"{reason} ({note})".strip()
+        idea.profile_fit = fit
+    return idea
 
 
 def render_telegram(idea: Idea, date: str, errors: list[str] | None = None) -> str:
@@ -124,6 +191,13 @@ def render_telegram(idea: Idea, date: str, errors: list[str] | None = None) -> s
         parts += ["", f"<b>Profile fit</b> {fit_score(idea)}/10 — {fit_reason}"]
     if idea.risk:
         parts += [f"<b>Risk</b> {e(idea.risk)}"]
+    ranked = [
+        f"{e(str(item.get('title', ''))[:48])} ({item.get('score', '?')})"
+        for item in idea.shortlist[1:4]
+        if item.get("title")
+    ]
+    if ranked:
+        parts += ["", "<b>Also considered</b> " + " · ".join(ranked)]
     if sources:
         parts += ["", "<b>Signal</b>", sources]
     if idea.engine != "llm":
@@ -139,6 +213,11 @@ def render_telegram(idea: Idea, date: str, errors: list[str] | None = None) -> s
 def render_markdown(idea: Idea, date: str) -> str:
     plan = "\n".join(f"- **{k}** — {v}" for k, v in idea.build_plan.items())
     sources = "\n".join(f"- [{s['title']}]({s['url']})" for s in idea.sources[:5])
+    ranked = "\n".join(
+        f"{i}. **{item['title']}** — {item.get('source') or 'signal'}, "
+        f"{item.get('score', '?')}/10" + (f" — {item['why']}" if item.get("why") else "")
+        for i, item in enumerate(idea.shortlist[:5], 1)
+    )
     return (
         f"## {date} — {idea.title}\n\n"
         f"> {idea.one_liner}\n\n"
@@ -148,6 +227,7 @@ def render_markdown(idea: Idea, date: str) -> str:
         f"**Repo:** `{idea.repo_name}`\n\n"
         f"{plan}\n\n"
         f"**README hook:** {idea.readme_hook}\n\n"
+        f"{('**Ranked:**' + chr(10) + ranked + chr(10) + chr(10)) if ranked else ''}"
         f"{('**Risk:** ' + idea.risk + chr(10) + chr(10)) if idea.risk else ''}"
         f"{('**Signal:**' + chr(10) + sources) if sources else ''}\n"
     )

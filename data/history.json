@@ -5,7 +5,12 @@
     "repo_name": "mcp-fuzzer",
     "one_liner": "A CLI tool that inspects Model Context Protocol (MCP) server tool schemas and uses Claude to generate adversarial payloads, surfacing unhandled crashes and permission leaks.",
     "engine": "llm",
-    "fit": 9
+    "fit": 9,
+    "sources": [
+      "https://dev.to/sylwia-lask/mcp-is-dead-simple-and-thats-exactly-the-problem-5811",
+      "http://arxiv.org/abs/2611.17304v1",
+      "https://github.com/DIYgod/pinky"
+    ]
   },
   {
     "date": "2026-11-15",
@@ -13,7 +18,12 @@
     "repo_name": "claude-tool-guard",
     "one_liner": "A zero-dependency Python wrapper for the Anthropic SDK that intercepts tool call inputs and outputs to block credential leaks and PII before execution.",
     "engine": "llm",
-    "fit": 9
+    "fit": 9,
+    "sources": [
+      "https://www.crissyfield.de/research/lovable-en/",
+      "https://dev.to/sylwia-lask/mcp-is-dead-simple-and-thats-exactly-the-problem-5811",
+      "https://news.ycombinator.com/item?id=50503930"
+    ]
   },
   {
     "date": "2026-11-16",
@@ -21,7 +31,12 @@
     "repo_name": "claude-trace-diff",
     "one_liner": "A CLI tool that captures Anthropic SDK tool execution sequences and flags argument drifts, missing tool calls, and hallucinations across prompt iterations.",
     "engine": "llm",
-    "fit": 9
+    "fit": 9,
+    "sources": [
+      "https://dev.to/xulingfeng/we-keep-hearing-about-ai-productivity-the-qa-group-chat-told-a-different-story-2nma",
+      "http://arxiv.org/abs/2611.18514v1",
+      "https://dev.to/sylwia-lask/mcp-is-dead-simple-and-thats-exactly-the-problem-5811"
+    ]
   },
   {
     "date": "2026-11-17",
@@ -29,6 +44,10 @@
     "repo_name": "claude-callgraph",
     "one_liner": "A CLI that turns Claude agent tool-call logs into instant Mermaid diagrams for rapid debugging and insight",
     "engine": "llm",
-    "fit": 8
+    "fit": 8,
+    "sources": [
+      "https://dev.to/sylwia-lask/mcp-is-dead-simple-and-thats-exactly-the-problem-5811",
+      "http://arxiv.org/abs/2611.21577v1"
+    ]
   }
 ]

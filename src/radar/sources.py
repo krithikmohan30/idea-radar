@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import datetime as dt
 import os
+import re
 import xml.etree.ElementTree as ET
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
@@ -233,3 +234,48 @@ def top_signals(signals: list[Signal], limit: int = 40, per_source: int = 8) -> 
             if len(out) >= limit:
                 return out
     return out
+
+
+def normalize_url(url: str) -> str:
+    """Compare links by host+path.
+
+    The same story arrives from HN, Lobsters and dev.to with different tracking
+    parameters, and a rewrite that only compares titles misses it. Stripping the
+    scheme, the `www.`, the query and the fragment makes them compare equal.
+    """
+    text = (url or "").strip().lower()
+    text = re.sub(r"^https?://", "", text)
+    text = re.sub(r"^www\.", "", text)
+    text = text.split("#")[0].split("?")[0]
+    return text.rstrip("/")
+
+
+def collapse_duplicates(signals: list[Signal]) -> list[Signal]:
+    """Keep one copy of each URL, preferring the loudest copy.
+
+    One story posted to three feeds is one story, not three candidates, and
+    counting it three times is what lets it dominate the prompt.
+    """
+    best: dict[str, Signal] = {}
+    for sig in signals:
+        key = normalize_url(sig.url) or sig.title.lower()
+        current = best.get(key)
+        if current is None or _weight(sig) > _weight(current):
+            best[key] = sig
+    return list(best.values())
+
+
+def _weight(sig: Signal) -> int:
+    return sig.score + 2 * sig.comments
+
+
+def drop_seen(signals: list[Signal], used: set[str]) -> tuple[list[Signal], int]:
+    """Remove signals whose URL already carried an earlier idea.
+
+    This is the fix for the same article being cited four days running: a write-up
+    that stays on a front page for a week cannot keep feeding new proposals.
+    """
+    if not used:
+        return list(signals), 0
+    kept = [sig for sig in signals if normalize_url(sig.url) not in used]
+    return kept, len(signals) - len(kept)

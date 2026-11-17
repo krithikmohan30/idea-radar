@@ -6,14 +6,15 @@ import argparse
 import sys
 import traceback
 from pathlib import Path
+from urllib.parse import urlparse
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from radar import llm, notify, state
 from radar import profile as profile_mod
-from radar.idea import Idea, render_markdown, render_telegram
-from radar.sources import Signal, collect, top_signals
+from radar.idea import Idea, calibrate, fit_score, render_markdown, render_telegram
+from radar.sources import Signal, collapse_duplicates, collect, drop_seen, top_signals
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -58,10 +59,31 @@ def pick_idea(
 
 
 def _fit(idea: Idea) -> int:
-    try:
-        return int(float(idea.profile_fit.get("score", 0)))
-    except (TypeError, ValueError):
-        return 0
+    return fit_score(idea)
+
+
+def _distinct_hosts(idea: Idea) -> int:
+    hosts = set()
+    for src in idea.sources:
+        netloc = urlparse(str(src.get("url", ""))).netloc.lower()
+        if netloc.startswith("www."):
+            netloc = netloc[4:]
+        if netloc:
+            hosts.add(netloc)
+    return len(hosts)
+
+
+def shortlist_signals(signals: list[Signal], records: list[dict]) -> list[Signal]:
+    """Collapse mirrors, then drop links that already carried an earlier idea."""
+    pool = collapse_duplicates(signals)
+    kept, dropped = drop_seen(pool, state.recent_urls(records))
+    if dropped:
+        print(f"[dedupe] dropped {dropped} signal(s) already cited in the last 21 days")
+    if len(kept) >= 12:
+        return kept
+    # Too few fresh links to rank anything; keep the pool but say so.
+    print(f"[dedupe] only {len(kept)} fresh signal(s); falling back to the unfiltered pool")
+    return pool
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -87,12 +109,18 @@ def main(argv: list[str] | None = None) -> int:
             )
         return 1
 
-    trimmed = top_signals(signals, 40)
+    trimmed = shortlist_signals(top_signals(signals, 40), records)
     profile = profile_mod.fetch_profile()
 
     try:
         idea = pick_idea(
             profile_mod.summary(profile), trimmed, records, args.provider, args.min_fit
+        )
+        idea = calibrate(idea)
+        hosts = _distinct_hosts(idea)
+        print(
+            f"[diversity] pick rests on {hosts} distinct source(s), "
+            f"chosen from {len(idea.shortlist) or 'no'} shortlisted candidate(s)"
         )
     except Exception:
         traceback.print_exc()

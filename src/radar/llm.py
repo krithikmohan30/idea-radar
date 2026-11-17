@@ -26,21 +26,42 @@ Hard rules:
 - Must be specific. "An AI chat app" is rejected. "A CLI that diffs two OpenAPI specs and flags breaking changes with severity" is accepted.
 - Reject: todo apps, clones, tutorial rehashes, thin GPT wrappers, anything needing paid infra or a team.
 - Prefer: a sharp wedge of a current trend, a developer tool, a thing that is funny or useful enough to share.
-- Cite 2-4 of the provided signals as evidence, using their exact URLs.
-Return JSON only. No prose, no markdown fences. No emoji anywhere in the output."""
+- Return JSON only. No prose, no markdown fences. No emoji anywhere in the output.
+
+How to choose:
+- Read every candidate before deciding. Shortlist four, from four DIFFERENT sources, and rank them.
+- The winner is the one you would defend in an interview, not the one with the biggest number next to it.
+- One article is evidence, not a topic. Prefer a project that several sources are circling over
+  one that merely restates the loudest headline.
+- Ground the winner in at least two signals from different sources whenever the signal allows it.
+
+Scoring profile_fit honestly. Most days are a 6 or a 7:
+- 9-10: extends a specific repo this developer already has, and no strong open-source equivalent
+  exists. Rare. At most one shortlisted candidate may score 8 or above. A 10 is not allowed.
+- 7-8: solid adjacency, a credible story.
+- 5-6: generally useful, but says nothing about this developer in particular.
+- 3-4: buildable but pointless for them.
+- 1-2: irrelevant."""
 
 SCHEMA_HINT = """{
-  "title": "short product name + 4-8 word descriptor",
-  "one_liner": "one sentence, what it does for whom",
-  "why_now": "2-3 sentences tying it to today's signals",
-  "build_plan": {"Day 1": "...", "Day 2": "..."},
-  "stack": ["3-5 concrete tools"],
-  "repo_name": "kebab-case repo name",
-  "readme_hook": "the first line of the README that makes someone star it",
-  "profile_fit": {"score": 8, "reason": "why this fills a gap in THIS profile, or what it proves"},
-  "risk": "the one thing most likely to go wrong",
-  "sources": [{"title": "...", "url": "https://exact-url-from-signals"}]
-}"""
+  "shortlist": [
+    {"rank": 1, "title": "candidate name", "source": "hn|github|lobsters|devto|arxiv|show_hn", "score": 7, "why": "under 10 words"}
+  ],
+  "pick": {
+    "title": "short product name + 4-8 word descriptor",
+    "one_liner": "one sentence, what it does for whom",
+    "why_now": "2-3 sentences tying it to today's signals",
+    "build_plan": {"Day 1": "...", "Day 2": "..."},
+    "stack": ["3-5 concrete tools"],
+    "repo_name": "kebab-case repo name",
+    "readme_hook": "the first line of the README that makes someone star it",
+    "profile_fit": {"score": 7, "reason": "why this fills a gap in THIS profile, or what it proves"},
+    "risk": "the one thing most likely to go wrong",
+    "sources": [{"title": "...", "url": "https://exact-url-from-signals"}]
+  }
+}
+
+"shortlist" must hold exactly 4 entries, best first, each from a different source."""
 
 
 def build_prompt(profile_text: str, signals: list[Signal], avoid: list[str]) -> str:
@@ -62,12 +83,15 @@ def build_prompt(profile_text: str, signals: list[Signal], avoid: list[str]) -> 
 {avoid_block}
 
 ## Task
-Propose exactly one project. Schema:
-{SCHEMA_HINT}
+Narrow today's signal to one project.
 
-Constraints: two evenings max, visible demo in 30 seconds, no duplication of the repos above.
-Be concrete about what gets built on day one versus day two. Score profile_fit honestly (1-10);
-a 10 means it would genuinely change how a recruiter reads this profile."""
+1. Rank the four strongest candidates, each from a different source, in "shortlist".
+2. Write the full spec of number one in "pick".
+
+Constraints: two evenings max, visible demo in 30 seconds, no duplication of the repos above,
+at least two signals from different sources backing the winner.
+Be concrete about what gets built on day one versus day two. Score profile_fit with the rubric
+from your instructions: 9+ only when it extends a repo this developer already has, and never 10."""
 
 
 class LLMError(RuntimeError):
@@ -408,8 +432,26 @@ def template(prompt_signals: list[Signal]) -> dict[str, Any]:
     unit = ENGAGEMENT.get(top.source, "points")
     traction = f"{top.score:,} {unit}" if top.score else "fresh today"
     source_label = SOURCE_LABEL.get(top.source, top.source)
+    ranked = [
+        top,
+        *[
+            s
+            for s in sorted(prompt_signals, key=lambda s: s.score + 2 * s.comments, reverse=True)
+            if s is not top
+        ][:3],
+    ]
 
     return {
+        "shortlist": [
+            {
+                "rank": index,
+                "title": s.title[:80],
+                "source": s.source,
+                "score": 6,
+                "why": "strongest buildable signal" if s is top else "runner-up",
+            }
+            for index, s in enumerate(ranked, 1)
+        ],
         "title": f"{name}: {topic}",
         "one_liner": one_liner.format(topic=topic) + ".",
         "why_now": (
