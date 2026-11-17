@@ -22,5 +22,13 @@
     "one_liner": "A CLI tool that captures Anthropic SDK tool execution sequences and flags argument drifts, missing tool calls, and hallucinations across prompt iterations.",
     "engine": "llm",
     "fit": 9
+  },
+  {
+    "date": "2026-11-17",
+    "title": "Claude Callgraph – Visualize Claude tool-use traces",
+    "repo_name": "claude-callgraph",
+    "one_liner": "A CLI that turns Claude agent tool-call logs into instant Mermaid diagrams for rapid debugging and insight",
+    "engine": "llm",
+    "fit": 8
   }
 ]
