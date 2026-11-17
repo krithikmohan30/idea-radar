@@ -13,13 +13,19 @@ history is a dated log of what I noticed and what I decided to build.
 | --- | --- | --- |
 | Collect | Six public sources, no scraping, each isolated so one outage does not matter | `src/radar/sources.py` |
 | Reflect | Reads my public repos + profile README, so duplicate suggestions are blocked | `src/radar/profile.py` |
-| Score | LLM ranks the day's signal, proposes one project, and grades profile fit 1-10 | `src/radar/llm.py` |
-| Dedupe | Token overlap against the last 60 ideas; regenerate once if it repeats | `src/radar/state.py` |
+| Score | Ranks four candidates from four different feeds, specs the winner, grades fit against a rubric | `src/radar/llm.py` |
+| Dedupe | Token overlap against the last 60 ideas, plus every link cited in the last 21 days | `src/radar/state.py` |
 | Deliver | Telegram message, HTML, chunked safely | `src/radar/notify.py` |
 | Log | Appends to `ideas/YYYY-MM.md` and commits | `src/radar/main.py` |
 
 Sources: Hacker News front page, Show HN, newly trending GitHub repos, arXiv cs.AI/cs.SE,
 Lobsters, dev.to.
+
+Every run produces exactly one idea, and shows its work: the four candidates it ranked
+before choosing, and the score it gave each. Links already used in the last three weeks are
+removed before the model sees the pool, so a write-up that stays on a front page for a week
+cannot keep supplying new proposals. Scores are calibrated in code, not trusted: a 10 becomes
+a 9, and a shortlist where every candidate scored 8+ caps the winner at 8.
 
 ## What a delivery looks like
 
