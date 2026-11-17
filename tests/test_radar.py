@@ -313,3 +313,11 @@ def test_markdown_shows_the_ranking():
     md = render_markdown(idea, "2026-11-14")
     assert "**Ranked:**" in md
     assert "1. **Alpha**" in md
+
+
+def test_from_json_finds_the_idea_under_any_wrapper_key():
+    wrapped = {"shortlist": [{"title": "A", "score": 7}], "idea": PAYLOAD}
+    assert from_json(wrapped).title == PAYLOAD["title"]
+
+    odd = {"shortlist": [], "recommended_project": PAYLOAD}
+    assert from_json(odd).title == PAYLOAD["title"]

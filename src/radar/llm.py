@@ -323,7 +323,7 @@ def groq(prompt: str, api_key: str, model: str | None = None) -> dict[str, Any]:
     body = {
         "model": model,
         "temperature": 0.9,
-        "max_tokens": 2048,
+        "max_tokens": 4096,
         "response_format": {"type": "json_object"},
         "messages": [
             {"role": "system", "content": SYSTEM},
@@ -501,7 +501,13 @@ def generate(
         try:
             fn = gemini if name == "gemini" else groq
             print(f"[llm] trying {name}")
-            return from_json(fn(prompt, key), engine="llm")
+            raw = fn(prompt, key)
+            try:
+                return from_json(raw, engine="llm")
+            except ValueError as exc:
+                # Report the shape, never the content: enough to fix the parser.
+                print(f"[llm] {name} returned keys {list(raw)[:8]}: {exc}")
+                raise
         except Exception as exc:
             print(f"[llm] {name} failed: {exc}")
 

@@ -76,12 +76,40 @@ def _shortlist(value: Any) -> list[dict[str, Any]]:
     return out[:6]
 
 
+WRAPPER_KEYS = (
+    "pick",
+    "idea",
+    "project",
+    "selection",
+    "selected",
+    "winner",
+    "recommendation",
+    "result",
+    "data",
+)
+
+
+def _unwrap(payload: dict[str, Any]) -> dict[str, Any]:
+    """Find the idea inside whatever wrapper key the model chose.
+
+    The prompt asks for {"shortlist": [...], "pick": {...}}, but models rename that
+    key freely. Guessing wrong turns a good response into "missing fields: title".
+    """
+    if payload.get("title"):
+        return payload
+    for key in WRAPPER_KEYS:
+        value = payload.get(key)
+        if isinstance(value, dict) and (value.get("title") or value.get("one_liner")):
+            return {**payload, **value}
+    for value in payload.values():
+        if isinstance(value, dict) and value.get("title"):
+            return {**payload, **value}
+    return payload
+
+
 def from_json(payload: dict[str, Any], engine: str = "llm") -> Idea:
     """Tolerant normaliser: the model is allowed to be slightly sloppy."""
-    # Newer prompt wraps the idea in a "pick" key; older responses keep it flat.
-    pick = payload.get("pick")
-    if isinstance(pick, dict):
-        payload = {**payload, **pick}
+    payload = _unwrap(payload) if isinstance(payload, dict) else {}
 
     fit = payload.get("profile_fit") or {}
     if not isinstance(fit, dict):
