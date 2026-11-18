@@ -49,5 +49,17 @@
       "https://dev.to/sylwia-lask/mcp-is-dead-simple-and-thats-exactly-the-problem-5811",
       "http://arxiv.org/abs/2611.21577v1"
     ]
+  },
+  {
+    "date": "2026-11-18",
+    "title": "agent-diff-audit: AI PR Churn and Bloat Evaluator",
+    "repo_name": "agent-diff-audit",
+    "one_liner": "A CLI and GitHub Action that evaluates AI agent git diffs for code churn, redundant refactoring, and token efficiency before merging.",
+    "engine": "llm",
+    "fit": 9,
+    "sources": [
+      "http://arxiv.org/abs/2611.23216v1",
+      "http://arxiv.org/abs/2611.23203v1"
+    ]
   }
 ]

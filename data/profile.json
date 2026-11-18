@@ -5,7 +5,7 @@
       "name": "idea-radar",
       "description": "One portfolio-grade build idea in Telegram every morning, scored against my GitHub profile",
       "language": "Python",
-      "stars": 0,
+      "stars": 1,
       "topics": [
         "automation",
         "developer-tools",
@@ -18,52 +18,45 @@
       ]
     },
     {
-      "name": "song-player",
-      "description": "A lightweight web-based audio player built for seamless music playback. Features custom play/pause controls, progress tracking, volume adjustment, and playlist management wrapped in a clean, modern UI.",
-      "language": "",
-      "stars": 0,
-      "topics": []
-    },
-    {
       "name": "iiot-management",
-      "description": "",
+      "description": "Industrial IoT telemetry dashboard with real-time WebSocket updates and Neon PostgreSQL.",
       "language": "JavaScript",
-      "stars": 0,
+      "stars": 1,
       "topics": []
     },
     {
       "name": "reaper",
       "description": "REAPER: Dependency Bloat and Dead-Code CLI for JS/TS",
       "language": "TypeScript",
-      "stars": 0,
+      "stars": 1,
       "topics": []
     },
     {
       "name": "Ai-assistant",
       "description": "Ai assistant",
       "language": "Python",
-      "stars": 0,
+      "stars": 1,
       "topics": []
     },
     {
       "name": "smartbus-ai",
-      "description": "",
+      "description": "SmartBus AI: edge vision and GPS pipeline for bus tracking, pothole detection, and road-defect reports.",
       "language": "Python",
-      "stars": 0,
+      "stars": 1,
       "topics": []
     },
     {
       "name": "krithikmohan30",
       "description": "Profile README for @krithikmohan30",
       "language": "",
-      "stars": 0,
+      "stars": 1,
       "topics": []
     },
     {
       "name": "claude-builder-workshop",
       "description": "60-min workshop kit to teach anyone to build with the Claude API: streaming, personas, tool use",
       "language": "Python",
-      "stars": 0,
+      "stars": 1,
       "topics": [
         "anthropic",
         "claude-api",
@@ -77,7 +70,7 @@
       "name": "PatchPilot-AlphaTech",
       "description": "PatchPilot: autonomous bug-fix agent (iQOO Hackathon 2026, Team Alpha Tech). Issue in, tested PR out.",
       "language": "Python",
-      "stars": 0,
+      "stars": 1,
       "topics": [
         "ai-agents",
         "bug-fix",
