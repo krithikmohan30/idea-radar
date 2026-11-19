@@ -61,5 +61,17 @@
       "http://arxiv.org/abs/2611.23216v1",
       "http://arxiv.org/abs/2611.23203v1"
     ]
+  },
+  {
+    "date": "2026-11-19",
+    "title": "canary-harness - Fault Injection Harness for Claude Tool Agents",
+    "repo_name": "canary-harness",
+    "one_liner": "A testing framework that injects synthetic fault scenarios into Anthropic tool calls to evaluate agent error recovery.",
+    "engine": "llm",
+    "fit": 8,
+    "sources": [
+      "http://arxiv.org/abs/2611.24924v1",
+      "http://arxiv.org/abs/2611.24877v1"
+    ]
   }
 ]
