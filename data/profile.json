@@ -2,13 +2,6 @@
   "user": "krithikmohan30",
   "repos": [
     {
-      "name": "genai-customer-service-bot",
-      "description": "GenAI customer service bot: policy RAG, sentiment escalation, ticketing, knowledge pipeline, OCR intake, multilingual sessions (ElevanceSkills internship)",
-      "language": "Python",
-      "stars": 0,
-      "topics": []
-    },
-    {
       "name": "idea-radar",
       "description": "One portfolio-grade build idea in Telegram every morning, scored against my GitHub profile",
       "language": "Python",
@@ -23,6 +16,13 @@
         "python",
         "telegram-bot"
       ]
+    },
+    {
+      "name": "genai-customer-service-bot",
+      "description": "GenAI customer service bot: policy RAG, sentiment escalation, ticketing, knowledge pipeline, OCR intake, multilingual sessions (ElevanceSkills internship)",
+      "language": "Python",
+      "stars": 0,
+      "topics": []
     },
     {
       "name": "iiot-management",

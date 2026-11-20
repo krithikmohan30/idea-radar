@@ -73,5 +73,17 @@
       "http://arxiv.org/abs/2611.24924v1",
       "http://arxiv.org/abs/2611.24877v1"
     ]
+  },
+  {
+    "date": "2026-11-20",
+    "title": "Claude OpenAPI Diff – AI-powered API change detector",
+    "repo_name": "claude-openapi-diff",
+    "one_liner": "A CLI that compares two OpenAPI specs and uses Claude to flag breaking changes with severity scores for developers and product teams.",
+    "engine": "llm",
+    "fit": 7,
+    "sources": [
+      "https://dev.to/sylwia-lask/is-coding-with-ai-actually-faster-and-cheaper-2810",
+      "https://www.anthropic.com/research/claude-black-hole-physics"
+    ]
   }
 ]
