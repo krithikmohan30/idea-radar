@@ -85,5 +85,18 @@
       "https://dev.to/sylwia-lask/is-coding-with-ai-actually-faster-and-cheaper-2810",
       "https://www.anthropic.com/research/claude-black-hole-physics"
     ]
+  },
+  {
+    "date": "2026-11-21",
+    "title": "Claude PR Fact‑Checker – Instant LLM Truth‑Gate for Pull Requests",
+    "repo_name": "claude-pr-fact-checker",
+    "one_liner": "A Python/GitHub‑Action tool that uses Claude to verify factual claims in PR titles, descriptions and diffs, failing the CI check on likely false statements.",
+    "engine": "llm",
+    "fit": 7,
+    "sources": [
+      "https://dev.to/aws-builders/ai-agents-open-17-million-pull-requests-a-month-i-built-a-gate-that-rejects-the-ones-that-lie-46n7",
+      "https://www.theguardian.com/business/2026/nov/20/global-stock-markets-slump-anthropic-ipo-ai-sell-off",
+      "http://arxiv.org/abs/2611.26601v1"
+    ]
   }
 ]
