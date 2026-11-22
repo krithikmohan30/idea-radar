@@ -98,5 +98,17 @@
       "https://www.theguardian.com/business/2026/nov/20/global-stock-markets-slump-anthropic-ipo-ai-sell-off",
       "http://arxiv.org/abs/2611.26601v1"
     ]
+  },
+  {
+    "date": "2026-11-22",
+    "title": "Claude ClipCut – Prompted video clipping CLI",
+    "repo_name": "claude-clipcut",
+    "one_liner": "A one‑command CLI that takes a video and a natural‑language prompt, uses Claude to locate the relevant moment and outputs a short clip instantly.",
+    "engine": "llm",
+    "fit": 7,
+    "sources": [
+      "https://github.com/iamajmeena/neonclipping",
+      "http://arxiv.org/abs/2611.26617v1"
+    ]
   }
 ]
