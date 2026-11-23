@@ -110,5 +110,17 @@
       "https://github.com/iamajmeena/neonclipping",
       "http://arxiv.org/abs/2611.26617v1"
     ]
+  },
+  {
+    "date": "2026-11-23",
+    "title": "claude-cache-opt - Anthropic Prompt Caching Profiler",
+    "repo_name": "claude-cache-opt",
+    "one_liner": "A CLI and Streamlit dashboard that profiles Claude API prompt structures, detects cache prefix leaks, and quantifies token latency savings.",
+    "engine": "llm",
+    "fit": 8,
+    "sources": [
+      "https://betterdatacenterproject.com/2026/11/16/how-ai-is-powered-a-breakdown-of-byop-and-grid-power/",
+      "https://github.com/sybil-solutions/inference-optimisation-skill"
+    ]
   }
 ]
