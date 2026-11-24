@@ -122,5 +122,17 @@
       "https://betterdatacenterproject.com/2026/11/16/how-ai-is-powered-a-breakdown-of-byop-and-grid-power/",
       "https://github.com/sybil-solutions/inference-optimisation-skill"
     ]
+  },
+  {
+    "date": "2026-11-24",
+    "title": "Claude GH Actions Linter – AI-powered workflow validator",
+    "repo_name": "claude-gh-actions-linter",
+    "one_liner": "A CLI that uses Claude to detect and automatically fix invalid GitHub Actions YAML files for developers.",
+    "engine": "llm",
+    "fit": 7,
+    "sources": [
+      "https://yossarian.net/til/post/github-actions-accepts-invalid-yaml/",
+      "https://z.ai/blog/glm-5.4"
+    ]
   }
 ]
