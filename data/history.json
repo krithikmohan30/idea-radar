@@ -134,5 +134,17 @@
       "https://yossarian.net/til/post/github-actions-accepts-invalid-yaml/",
       "https://z.ai/blog/glm-5.4"
     ]
+  },
+  {
+    "date": "2026-11-25",
+    "title": "hotspot-agent profile-guided Python optimizer with differential verification",
+    "repo_name": "hotspot-agent",
+    "one_liner": "A CLI tool that profiles Python scripts, identifies execution bottlenecks, prompts Claude to optimize hot functions, and runs differential fuzz tests to prove behavioral parity before patching.",
+    "engine": "llm",
+    "fit": 8,
+    "sources": [
+      "https://github.com/EL4CTEO/fast-anything",
+      "http://arxiv.org/abs/2611.33119v1"
+    ]
   }
 ]
