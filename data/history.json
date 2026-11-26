@@ -146,5 +146,17 @@
       "https://github.com/EL4CTEO/fast-anything",
       "http://arxiv.org/abs/2611.33119v1"
     ]
+  },
+  {
+    "date": "2026-11-26",
+    "title": "SecSummarizer – Claude‑powered security incident digest CLI",
+    "repo_name": "sec-summarizer-cli",
+    "one_liner": "A terminal tool that pulls recent security breach reports and returns concise, actionable Claude‑generated summaries for developers and security teams.",
+    "engine": "llm",
+    "fit": 7,
+    "sources": [
+      "https://1password.com/blog/update-on-nov-2026-security-incident",
+      "https://www.iankduncan.com/engineering/2026-11-19-smart-people-who-give-a-shit-use-tools"
+    ]
   }
 ]
