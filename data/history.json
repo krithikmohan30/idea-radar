@@ -158,5 +158,17 @@
       "https://1password.com/blog/update-on-nov-2026-security-incident",
       "https://www.iankduncan.com/engineering/2026-11-19-smart-people-who-give-a-shit-use-tools"
     ]
+  },
+  {
+    "date": "2026-11-27",
+    "title": "Claude Test Generator CLI – instant pytest suite creator",
+    "repo_name": "claude-test-gen",
+    "one_liner": "A CLI that takes a function and instantly returns a full pytest suite, powered by Claude, for developers who need rapid test coverage.",
+    "engine": "llm",
+    "fit": 7,
+    "sources": [
+      "https://dev.to/thethirdcup/i-built-ai-test-automation-today-i-went-back-to-manual-testing-mlh",
+      "http://arxiv.org/abs/2611.34875v1"
+    ]
   }
 ]
