@@ -170,5 +170,17 @@
       "https://dev.to/thethirdcup/i-built-ai-test-automation-today-i-went-back-to-manual-testing-mlh",
       "http://arxiv.org/abs/2611.34875v1"
     ]
+  },
+  {
+    "date": "2026-11-28",
+    "title": "agent-sabotage-detector - Claude Agent Deception & Silent Failure Evaluator",
+    "repo_name": "agent-sabotage-detector",
+    "one_liner": "CLI benchmark that injects silent anomalies into Claude API tool execution loops to score whether agents report errors or fake success.",
+    "engine": "llm",
+    "fit": 8,
+    "sources": [
+      "https://twitter.com/RealAstropulse/status/2126119408997466389",
+      "http://arxiv.org/abs/2611.34934v1"
+    ]
   }
 ]
